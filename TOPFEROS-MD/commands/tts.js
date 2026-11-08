@@ -15,6 +15,8 @@ async function ttsCommand(ctx) {
   const text =
     String(ctx.text || "").trim();
 
+const settingPanel = require("../src/settingPanel");
+
   if (!text) {
     await ctx.send(
       [
@@ -36,6 +38,17 @@ async function ttsCommand(ctx) {
         "No text provided."
     };
   }
+
+let recordingActive = false;
+
+const automation =
+  settingPanel.getSessionSettings(ctx.sessionId)?.automation || {};
+
+if (automation.fakeRecording === true) {
+  await ctx.sock.presenceSubscribe(ctx.jid);
+  await ctx.sock.sendPresenceUpdate("recording", ctx.jid);
+  recordingActive = true;
+}
 
   try {
     const url =
