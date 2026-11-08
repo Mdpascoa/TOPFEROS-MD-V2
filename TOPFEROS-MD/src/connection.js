@@ -1130,6 +1130,26 @@ const session = {
             ?.autoStatusReply === true;
         }
       }
+      autoReactEmojis: {
+        enumerable: true,
+        get() {
+          const settings =
+            settingPanel.getSessionSettings(sessionId);
+
+          const emojis =
+            settings?.automation?.autoReactEmojis;
+
+          return Array.isArray(emojis)
+            ? emojis
+                .filter(
+                  emoji =>
+                    typeof emoji === "string" &&
+                    emoji.trim()
+                )
+                .slice(0, 40)
+            : [];
+        }
+      }
     });
 
     statusOptions.aiModel =
