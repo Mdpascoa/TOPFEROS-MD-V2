@@ -1971,30 +1971,14 @@ if (shouldContinue) {
     |--------------------------------------------------------------------------
     */
 
-    const presence = await startAutoPresence(
-      sock,
-      sessionId,
-      jid
-    );
+const result = await found.command.handler(context);
 
-    let result;
-
-    try {
-      result = await found.command.handler(context);
-    } finally {
-      await stopAutoPresence(
-        sock,
-        jid,
-        presence
-      );
-    }
-
-    return {
-      success: true,
-      command: found.name,
-      result,
-      sessionId: sessionId || null
-    };
+return {
+  success: true,
+  command: found.name,
+  result,
+  sessionId: sessionId || null
+};
 
   } catch (error) {
     /*
