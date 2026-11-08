@@ -35,6 +35,35 @@ function getRandomInitialStatusEmoji() {
   ];
 }
 
+function getPreferredStatusEmojis(options = {}) {
+  if (!Array.isArray(options.autoReactEmojis)) {
+    return [];
+  }
+
+  return [...new Set(
+    options.autoReactEmojis
+      .filter(
+        emoji =>
+          typeof emoji === "string" &&
+          emoji.trim()
+      )
+      .map(emoji => emoji.trim())
+  )];
+}
+
+function getInitialStatusEmoji(options = {}) {
+  const preferred =
+    getPreferredStatusEmojis(options);
+
+  if (preferred.length > 0) {
+    return preferred[
+      Math.floor(Math.random() * preferred.length)
+    ];
+  }
+
+  return getRandomInitialStatusEmoji();
+}
+
 /*
 |--------------------------------------------------------------------------
 | TOPFEROS MD V2.0.0
@@ -448,7 +477,7 @@ async function processStatus(
     */
 
     if (shouldReact) {
-      emoji = getRandomInitialStatusEmoji();
+      emoji = getInitialStatusEmoji(options);
 
       try {
         await sendStatusReaction(
