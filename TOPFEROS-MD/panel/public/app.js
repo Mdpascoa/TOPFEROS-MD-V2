@@ -1226,10 +1226,11 @@ function fillAutomationSettings(automation = {}) {
     }
   }
 
-  
 async function verifyNumberAndCode(number, code) {
   const cleanNumber = String(number || "").trim();
-  const cleanCode = String(code || "").trim().toUpperCase();
+  const cleanCode = String(code || "")
+    .trim()
+    .toUpperCase();
 
   if (!cleanNumber || !cleanCode) {
     notify("NUMBER and CODE are required.", "error");
@@ -1246,7 +1247,6 @@ async function verifyNumberAndCode(number, code) {
       })
     });
 
-    // Pa bay aksè si backend la pa konfime verifikasyon an.
     if (data?.success !== true || !data?.sessionId) {
       throw new Error(
         data?.message || "Verification was not successful."
@@ -1255,11 +1255,12 @@ async function verifyNumberAndCode(number, code) {
 
     setSessionId(data.sessionId);
     state.verified = true;
-
-    // Konsève done panèl la.
     state.panelData = data;
 
-    notify("Session verified successfully.", "success");
+    notify(
+      "Session verified successfully.",
+      "success"
+    );
 
     return true;
 
@@ -1274,55 +1275,6 @@ async function verifyNumberAndCode(number, code) {
     return false;
   }
 }
-
-    try {
-      const data =
-        await request(
-          API.verify,
-          {
-            method: "POST",
-            body: JSON.stringify({
-              number:
-                cleanNumber,
-              code:
-                cleanCode,
-              sessionId:
-                state.sessionId
-            })
-          }
-        );
-
-      if (data?.sessionId) {
-        setSessionId(
-          data.sessionId
-        );
-      }
-
-      /*
-       * Backend already returned
-       * HTTP 2xx, therefore the
-       * verification request itself
-       * succeeded.
-       */
-      state.verified = true;
-
-      notify(
-        "Session verified successfully.",
-        "success"
-      );
-
-      return true;
-    } catch (error) {
-      state.verified = false;
-
-      notify(
-        error.message,
-        "error"
-      );
-
-      return false;
-    }
-  }
 
   async function loadSettings() {
     if (!state.sessionId) {
