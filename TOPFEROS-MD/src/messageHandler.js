@@ -1302,21 +1302,30 @@ async function startAutoPresence(
 
     const automation = settings?.automation || {};
 
-    // Chwazi estati a selon kalite repons lan
     if (mode === "recording") {
       if (automation.fakeRecording !== true) return null;
 
+      await sock.presenceSubscribe(jid);
       await sock.sendPresenceUpdate("recording", jid);
-      return "recording";
+
+      return {
+        status: "recording",
+        startedAt: Date.now()
+      };
     }
 
     if (automation.fakeTyping !== true) return null;
 
+    await sock.presenceSubscribe(jid);
     await sock.sendPresenceUpdate("composing", jid);
-    return "composing";
+
+    return {
+      status: "composing",
+      startedAt: Date.now()
+    };
 
   } catch (error) {
-    console.error("[AUTO PRESENCE]", error);
+    console.error("[AUTO PRESENCE]", error?.message || error);
     return null;
   }
 }
@@ -1325,9 +1334,17 @@ async function stopAutoPresence(sock, jid, presence) {
   if (!sock || !jid || !presence) return;
 
   try {
+    const elapsed = Date.now() - presence.startedAt;
+    const remaining = Math.max(0, 1500 - elapsed);
+
+    if (remaining > 0) {
+      await new Promise(resolve => setTimeout(resolve, remaining));
+    }
+
     await sock.sendPresenceUpdate("paused", jid);
+
   } catch (error) {
-    console.error("[AUTO PRESENCE STOP]", error);
+    console.error("[AUTO PRESENCE STOP]", error?.message || error);
   }
 }
 
@@ -1936,21 +1953,12 @@ async function handleMessage(sock, message, sessionId) {
 
   try {
     if (isPrivateMessage) {
-      const settings =
-        settingPanel.getSessionSettings(sessionId) || {};
-
-      const automation = settings.automation || {};
-
-      if (automation.fakeTyping === true) {
-        await sock.presenceSubscribe(jid);
-
-        presence = await startAutoPresence(
-          sock,
-          sessionId,
-          jid,
-          "typing"
-        );
-      }
+      presence = await startAutoPresence(
+        sock,
+        sessionId,
+        jid,
+        "typing"
+      );
     }
 
     return await handleMessageCore(
@@ -1959,19 +1967,10 @@ async function handleMessage(sock, message, sessionId) {
       sessionId
     );
 
-  } catch (error) {
-    console.error("[AUTO PRESENCE]", error);
-    return await handleMessageCore(
-      sock,
-      message,
-      sessionId
-    );
   } finally {
-    await stopAutoPresence(
-      sock,
-      jid,
-      presence
-    );
+    if (presence) {
+      await stopAutoPresence(sock, jid, presence);
+    }
   }
 }
 
