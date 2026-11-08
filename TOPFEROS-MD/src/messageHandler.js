@@ -1288,54 +1288,35 @@ function attachStatusAI(
 |--------------------------------------------------------------------------
 */
 
-async function startAutoPresence(sock, sessionId, jid) {
+async function startAutoPresence(
+  sock,
+  sessionId,
+  jid,
+  mode = "typing"
+) {
   try {
-    if (!sock || !sessionId || !jid) {
-      return null;
-    }
+    if (!sock || !sessionId || !jid) return null;
 
     const settings =
       settingPanel.getSessionSettings(sessionId);
 
     const automation = settings?.automation || {};
-    const presences = [];
 
-    // Fake Typing
-    if (automation.fakeTyping === true) {
-      presences.push("composing");
+    // Chwazi estati a selon kalite repons lan
+    if (mode === "recording") {
+      if (automation.fakeRecording !== true) return null;
+
+      await sock.sendPresenceUpdate("recording", jid);
+      return "recording";
     }
 
-    // Fake Recording
-    if (automation.fakeRecording === true) {
-      presences.push("recording");
-    }
+    if (automation.fakeTyping !== true) return null;
 
-    if (presences.length === 0) {
-      return null;
-    }
-
-    // Montre Typing anvan Recording
-    for (let i = 0; i < presences.length; i++) {
-      await sock.sendPresenceUpdate(
-        presences[i],
-        jid
-      );
-
-      if (i < presences.length - 1) {
-        await new Promise(resolve =>
-          setTimeout(resolve, 1200)
-        );
-      }
-    }
-
-    return presences;
+    await sock.sendPresenceUpdate("composing", jid);
+    return "composing";
 
   } catch (error) {
-    console.error(
-      "[AUTO PRESENCE]",
-      error?.message || error
-    );
-
+    console.error("[AUTO PRESENCE]", error);
     return null;
   }
 }
@@ -1346,10 +1327,7 @@ async function stopAutoPresence(sock, jid, presence) {
   try {
     await sock.sendPresenceUpdate("paused", jid);
   } catch (error) {
-    console.error(
-      "[AUTO PRESENCE STOP]",
-      error?.message || error
-    );
+    console.error("[AUTO PRESENCE STOP]", error);
   }
 }
 
