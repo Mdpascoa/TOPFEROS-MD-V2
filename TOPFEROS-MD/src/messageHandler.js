@@ -1934,28 +1934,44 @@ async function handleMessage(sock, message, sessionId) {
 
   let presence = null;
 
-  if (isPrivateMessage) {
-    presence = await startAutoPresence(
-      sock,
-      sessionId,
-      jid
-    );
-  }
-
   try {
+    if (isPrivateMessage) {
+      const settings =
+        settingPanel.getSessionSettings(sessionId) || {};
+
+      const automation = settings.automation || {};
+
+      if (automation.fakeTyping === true) {
+        await sock.presenceSubscribe(jid);
+
+        presence = await startAutoPresence(
+          sock,
+          sessionId,
+          jid,
+          "typing"
+        );
+      }
+    }
+
+    return await handleMessageCore(
+      sock,
+      message,
+      sessionId
+    );
+
+  } catch (error) {
+    console.error("[AUTO PRESENCE]", error);
     return await handleMessageCore(
       sock,
       message,
       sessionId
     );
   } finally {
-    if (presence) {
-      await stopAutoPresence(
-        sock,
-        jid,
-        presence
-      );
-    }
+    await stopAutoPresence(
+      sock,
+      jid,
+      presence
+    );
   }
 }
 
