@@ -1619,88 +1619,84 @@ const isAIForward =
         (isAIForward && Boolean(forwardQuestion)) ||
         (waiting && !isCommand);
 
-      if (shouldContinue) {
-        const continuationText =
-          isAIForward && forwardQuestion
-            ? forwardQuestion
-            : messageText;
+if (shouldContinue) {
+  const continuationText =
+    isAIForward && forwardQuestion
+      ? forwardQuestion
+      : messageText;
 
-        try {
-          const aiPresence = await startAutoPresence(
-  sock,
-  sessionId,
-  jid
-);
-
-try {
-  const result = await continueAIChat(
-    jid,
-    continuationText
+  const presence = await startAutoPresence(
+    sock,
+    sessionId,
+    jid
   );
 
-          if (result?.busy) {
-            await sendText(
-              sock,
-              jid,
-              "⏳ AI a ap trete yon kesyon. Tanpri tann."
-            );
+  try {
+    const result = await continueAIChat(
+      jid,
+      continuationText
+    );
 
-            return {
-              success: false,
-              reason: "AI session busy."
-            };
-          }
+    if (result?.busy) {
+      await sendText(
+        sock,
+        jid,
+        "⏳ AI a ap trete yon kesyon. Tanpri tann."
+      );
 
-          if (result?.answer) {
-            const outgoing =
-              `${result.answer}\n\n${getAIForwardNotice(result.answer)}`;
-
-            const sent = await sendText(
-              sock,
-              jid,
-              outgoing
-            );
-
-            setLastAIMessage(
-              jid,
-              sent?.key?.id || null,
-              outgoing
-            );
-
-            setWaitingForQuestion(jid, false);
-
-            return {
-              success: true,
-              command: "ai-continue"
-            };
-          }
-        } catch (error) {
-          console.error(
-            "[AI CHAT CONTINUE]",
-            error?.stack || error
-          );
-
-          await sendText(
-            sock,
-            jid,
-            "❌ AI a pa kapab kontinye kounye a. Eseye ankò."
-          );
-
-          return {
-            success: false,
-            reason: "AI continuation failed."
-          };
-
-           finally {
-        await stopAutoPresence(
-         sock,
-          jid,
-          aiPresence
-           );
-          }
-        }
-      }
+      return {
+        success: false,
+        reason: "AI session busy."
+      };
     }
+
+    if (result?.answer) {
+      const outgoing =
+        `${result.answer}\n\n${getAIForwardNotice(result.answer)}`;
+
+      const sent = await sendText(
+        sock,
+        jid,
+        outgoing
+      );
+
+      setLastAIMessage(
+        jid,
+        sent?.key?.id || null,
+        outgoing
+      );
+
+      setWaitingForQuestion(jid, false);
+
+      return {
+        success: true,
+        command: "ai-continue"
+      };
+    }
+  } catch (error) {
+    console.error(
+      "[AI CHAT CONTINUE]",
+      error?.stack || error
+    );
+
+    await sendText(
+      sock,
+      jid,
+      "❌ AI a pa kapab kontinye kounye a. Eseye ankò."
+    );
+
+    return {
+      success: false,
+      reason: "AI continuation failed."
+    };
+  } finally {
+    await stopAutoPresence(
+      sock,
+      jid,
+      presence
+    );
+  }
+}
 
     /*
     |--------------------------------------------------------------------------
