@@ -83,20 +83,38 @@ let initialization = null;
 function getPool() {
   if (pool) return pool;
 
-  const connectionString =
-    process.env.DATABASE_URL;
+  const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
     throw new Error(
-      "DATABASE_URL manke nan Render Environment."
+      "DATABASE_URL manke nan Railway Variables."
+    );
+  }
+
+  let isRailwayPrivate = false;
+
+  try {
+    const databaseUrl = new URL(connectionString);
+
+    isRailwayPrivate =
+      databaseUrl.hostname.endsWith(".railway.internal");
+  } catch (error) {
+    throw new Error(
+      "DATABASE_URL pa yon adrès PostgreSQL valab."
     );
   }
 
   pool = new Pool({
     connectionString,
-   ssl: {
-  rejectUnauthorized: true
-},
+
+    // Railway Private Network deja itilize WireGuard.
+    // Pa mande PostgreSQL yon sètifika TLS pou koneksyon prive sa a.
+    ssl: isRailwayPrivate
+      ? false
+      : {
+          rejectUnauthorized: true
+        },
+
     max: 5,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 15000
@@ -104,7 +122,7 @@ function getPool() {
 
   pool.on("error", (error) => {
     console.error(
-      "[NEON] Idle database connection error:",
+      "[RAILWAY DATABASE] Idle connection error:",
       error.message
     );
   });
