@@ -1067,90 +1067,69 @@ const session = {
   try {
     const statusOptions = {};
 
-    Object.defineProperties(statusOptions, {
-      autoStatusReact: {
-        enumerable: true,
-        get() {
-          const current =
-            activeSessions.get(sessionId);
+Object.defineProperties(statusOptions, {
+  autoStatusReact: {
+    enumerable: true,
+    get() {
+      const current = activeSessions.get(sessionId);
+      const settings = settingPanel.getSessionSettings(sessionId);
+      const panelValue = settings?.automation?.autoStatusReact;
 
-          const settings =
-            settingPanel.getSessionSettings(sessionId);
-
-          const panelValue =
-            settings?.automation?.autoStatusReact;
-
-          if (typeof panelValue === "boolean") {
-            return panelValue;
-          }
-
-          return current?.automation
-            ?.autoStatusReact === true;
-        }
-      },
-
-      autoStatusSeen: {
-        enumerable: true,
-        get() {
-          const current =
-            activeSessions.get(sessionId);
-
-          const settings =
-            settingPanel.getSessionSettings(sessionId);
-
-          const panelValue =
-            settings?.automation?.autoStatusSeen;
-
-          if (typeof panelValue === "boolean") {
-            return panelValue;
-          }
-
-          return current?.automation
-            ?.autoStatusSeen === true;
-        }
-      },
-
-      autoStatusReply: {
-        enumerable: true,
-        get() {
-          const current =
-            activeSessions.get(sessionId);
-
-          const settings =
-            settingPanel.getSessionSettings(sessionId);
-
-          const panelValue =
-            settings?.automation?.autoStatusReply;
-
-          if (typeof panelValue === "boolean") {
-            return panelValue;
-          }
-
-          return current?.automation
-            ?.autoStatusReply === true;
-        }
+      if (typeof panelValue === "boolean") {
+        return panelValue;
       }
-      autoReactEmojis: {
-        enumerable: true,
-        get() {
-          const settings =
-            settingPanel.getSessionSettings(sessionId);
 
-          const emojis =
-            settings?.automation?.autoReactEmojis;
+      return current?.automation?.autoStatusReact === true;
+    }
+  },
 
-          return Array.isArray(emojis)
-            ? emojis
-                .filter(
-                  emoji =>
-                    typeof emoji === "string" &&
-                    emoji.trim()
-                )
-                .slice(0, 40)
-            : [];
-        }
+  autoStatusSeen: {
+    enumerable: true,
+    get() {
+      const current = activeSessions.get(sessionId);
+      const settings = settingPanel.getSessionSettings(sessionId);
+      const panelValue = settings?.automation?.autoStatusSeen;
+
+      if (typeof panelValue === "boolean") {
+        return panelValue;
       }
-    });
+
+      return current?.automation?.autoStatusSeen === true;
+    }
+  },
+
+  autoStatusReply: {
+    enumerable: true,
+    get() {
+      const current = activeSessions.get(sessionId);
+      const settings = settingPanel.getSessionSettings(sessionId);
+      const panelValue = settings?.automation?.autoStatusReply;
+
+      if (typeof panelValue === "boolean") {
+        return panelValue;
+      }
+
+      return current?.automation?.autoStatusReply === true;
+    }
+  },
+
+  autoReactEmojis: {
+    enumerable: true,
+    get() {
+      const settings = settingPanel.getSessionSettings(sessionId);
+      const emojis = settings?.automation?.autoReactEmojis;
+
+      return Array.isArray(emojis)
+        ? emojis.filter(
+            emoji =>
+              typeof emoji === "string" &&
+              emoji.trim()
+          ).slice(0, 40)
+        : [];
+    }
+  }
+});
+
 
     statusOptions.aiModel =
       process.env.GEMINI_MODEL ||
