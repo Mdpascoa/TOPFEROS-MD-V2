@@ -583,29 +583,43 @@
 <script src="/app.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
-const verifiedSessionControls =
-  document.getElementById("verifiedSessionControls");
-const verifyButton = document.getElementById("verifyButton");
-const numberInput = document.getElementById("verificationNumber");
-const codeInput = document.getElementById("verificationCode");
-const verificationPreviewStatus =
-  document.getElementById("verificationPreviewStatus");
+(() => {
+  const verifyButton =
+    document.getElementById("verifyButton");
+
+  const numberInput =
+    document.getElementById("verificationNumber");
+
+  const codeInput =
+    document.getElementById("verificationCode");
 
   const verificationSection =
     document.getElementById("verificationSection");
 
-  const panelIntroduction =
+  const previewStatus =
+    document.getElementById("verificationPreviewStatus");
+
+  const introduction =
     document.getElementById("panelIntroduction");
 
   const settingsContent =
     document.getElementById("settingsContent");
 
-  if (!verifyButton) return;
+  const sessionControls =
+    document.getElementById("verifiedSessionControls");
 
-  verifyButton.addEventListener("click", async () => {
-    const number = numberInput?.value?.trim();
-    const code = codeInput?.value?.trim();
+  if (!verifyButton) {
+    console.error("VERIFY BUTTON NOT FOUND");
+    return;
+  }
+
+  verifyButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+
+    if (verifyButton.disabled) return;
+
+    const number = numberInput?.value.trim();
+    const code = codeInput?.value.trim();
 
     if (!number || !code) {
       window.TOPFEROS?.notify(
@@ -616,15 +630,69 @@ const verificationPreviewStatus =
     }
 
     if (
-      !window.TOPFEROS ||
-      typeof window.TOPFEROS.verifyNumberAndCode !== "function"
+      typeof window.TOPFEROS?.verifyNumberAndCode !==
+      "function"
     ) {
-      window.TOPFEROS?.notify(
-        "Verification service is unavailable.",
-        "error"
-      );
+      console.error("Verification function unavailable");
+
+      alert("Verification service is unavailable.");
       return;
     }
+
+    verifyButton.disabled = true;
+    verifyButton.textContent = "VERIFYING...";
+
+    try {
+      const success =
+        await window.TOPFEROS.verifyNumberAndCode(
+          number,
+          code
+        );
+
+      if (!success) return;
+
+      if (settingsContent) {
+        settingsContent.hidden = false;
+      }
+
+      if (verificationSection) {
+        verificationSection.hidden = true;
+      }
+
+      if (introduction) {
+        introduction.hidden = true;
+      }
+
+      if (previewStatus) {
+        previewStatus.hidden = true;
+      }
+
+      if (sessionControls) {
+        sessionControls.hidden = false;
+      }
+
+      try {
+        await window.TOPFEROS.loadSettings();
+      } catch (error) {
+        console.error("Settings loading error:", error);
+      }
+
+    } catch (error) {
+      console.error("VERIFY ERROR:", error);
+
+      window.TOPFEROS.notify(
+        error.message || "Verification failed.",
+        "error"
+      );
+
+    } finally {
+      verifyButton.disabled = false;
+      verifyButton.textContent = "🔐 VERIFY";
+    }
+  });
+
+})();
+</script>
 
     verifyButton.disabled = true;
     verifyButton.textContent = "VERIFYING...";
