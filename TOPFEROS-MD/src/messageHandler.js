@@ -1335,7 +1335,7 @@ async function stopAutoPresence(sock, jid, presence) {
 
   try {
     const elapsed = Date.now() - presence.startedAt;
-    const remaining = Math.max(0, 1500 - elapsed);
+    const remaining = Math.max(0, 10000 - elapsed);
 
     if (remaining > 0) {
       await new Promise(resolve => setTimeout(resolve, remaining));
