@@ -114,6 +114,10 @@ if (automation.fakeRecording === true) {
       }
     );
 
+if (recordingActive) {
+  await ctx.sock.sendPresenceUpdate("paused", ctx.jid);
+  recordingActive = false;
+}
     return {
       success: true
     };
