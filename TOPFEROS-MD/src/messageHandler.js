@@ -1626,10 +1626,17 @@ const isAIForward =
             : messageText;
 
         try {
-          const result = await continueAIChat(
-            jid,
-            continuationText
-          );
+          const aiPresence = await startAutoPresence(
+  sock,
+  sessionId,
+  jid
+);
+
+try {
+  const result = await continueAIChat(
+    jid,
+    continuationText
+  );
 
           if (result?.busy) {
             await sendText(
@@ -1683,6 +1690,14 @@ const isAIForward =
             success: false,
             reason: "AI continuation failed."
           };
+
+           finally {
+        await stopAutoPresence(
+         sock,
+          jid,
+          aiPresence
+           );
+          }
         }
       }
     }
