@@ -1347,7 +1347,7 @@ async function stopAutoPresence(sock, jid, presence) {
 |--------------------------------------------------------------------------
 */
 
-async function handleMessage(sock, message, sessionId) {
+async function handleMessageCore(sock, message, sessionId) {
   try {
     /*
      * Validate socket and message.
@@ -1996,6 +1996,48 @@ return {
       success: false,
       error: error?.message || String(error)
     };
+  }
+}
+
+/*
+|--------------------------------------------------------------------------
+| GLOBAL AUTO PRESENCE FOR PRIVATE MESSAGES
+|--------------------------------------------------------------------------
+*/
+
+async function handleMessage(sock, message, sessionId) {
+  const jid = getChatJid(message);
+
+  const isPrivateMessage =
+    jid &&
+    !isGroup(jid) &&
+    !isStatus(jid) &&
+    !message?.key?.fromMe;
+
+  let presence = null;
+
+  if (isPrivateMessage) {
+    presence = await startAutoPresence(
+      sock,
+      sessionId,
+      jid
+    );
+  }
+
+  try {
+    return await handleMessageCore(
+      sock,
+      message,
+      sessionId
+    );
+  } finally {
+    if (presence) {
+      await stopAutoPresence(
+        sock,
+        jid,
+        presence
+      );
+    }
   }
 }
 
