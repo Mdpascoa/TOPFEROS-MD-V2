@@ -575,11 +575,19 @@ console.error(
         const aiEmoji =
           getAIEmoji(aiResult);
 
+const preferredEmojis =
+  getPreferredStatusEmojis(options);
+
+const aiEmojiAllowed =
+  preferredEmojis.length === 0 ||
+  preferredEmojis.includes(aiEmoji);
+
         if (
-       aiEmoji &&
-    aiResult?.source?.startsWith("gemini") &&
-      aiEmoji !== emoji
-       ) {
+  aiEmoji &&
+  aiEmojiAllowed &&
+  aiResult?.source?.startsWith("gemini") &&
+  aiEmoji !== emoji
+) {
           try {
             await sendStatusReaction(
               sock,
