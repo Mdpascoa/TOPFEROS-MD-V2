@@ -1298,25 +1298,41 @@ async function startAutoPresence(sock, sessionId, jid) {
       settingPanel.getSessionSettings(sessionId);
 
     const automation = settings?.automation || {};
+    const presences = [];
 
-    let presence = null;
-
-    if (automation.fakeRecording === true) {
-      presence = "recording";
-    } else if (automation.fakeTyping === true) {
-      presence = "composing";
+    // Fake Typing
+    if (automation.fakeTyping === true) {
+      presences.push("composing");
     }
 
-    if (!presence) {
+    // Fake Recording
+    if (automation.fakeRecording === true) {
+      presences.push("recording");
+    }
+
+    if (presences.length === 0) {
       return null;
     }
 
-    await sock.sendPresenceUpdate(presence, jid);
+    // Montre Typing anvan Recording
+    for (let i = 0; i < presences.length; i++) {
+      await sock.sendPresenceUpdate(
+        presences[i],
+        jid
+      );
 
-    return presence;
+      if (i < presences.length - 1) {
+        await new Promise(resolve =>
+          setTimeout(resolve, 1200)
+        );
+      }
+    }
+
+    return presences;
+
   } catch (error) {
     console.error(
-      "[AUTO PRESENCE] Start failed:",
+      "[AUTO PRESENCE]",
       error?.message || error
     );
 
@@ -1325,20 +1341,17 @@ async function startAutoPresence(sock, sessionId, jid) {
 }
 
 async function stopAutoPresence(sock, jid, presence) {
-  if (!sock || !jid || !presence) {
-    return;
-  }
+  if (!sock || !jid || !presence) return;
 
   try {
     await sock.sendPresenceUpdate("paused", jid);
   } catch (error) {
     console.error(
-      "[AUTO PRESENCE] Stop failed:",
+      "[AUTO PRESENCE STOP]",
       error?.message || error
     );
   }
 }
-
 
 /*
 |--------------------------------------------------------------------------
