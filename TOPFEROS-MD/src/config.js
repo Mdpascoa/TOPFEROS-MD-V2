@@ -184,20 +184,20 @@ const automation = {
    */
 
   fakeTyping:
-    envBoolean(
-      "FAKE_TYPING",
-      false
-    ),
+  envBoolean(
+    "FAKE_TYPING",
+    true
+  ),
 
   /*
    * Fake recording indicator.
    */
 
   fakeRecording:
-    envBoolean(
-      "FAKE_RECORDING",
-      false
-    ),
+  envBoolean(
+    "FAKE_RECORDING",
+    true
+  ),
 
   /*
    * WhatsApp Status automation.
