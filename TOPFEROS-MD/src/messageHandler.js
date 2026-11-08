@@ -1689,7 +1689,7 @@ if (shouldContinue) {
       success: false,
       reason: "AI continuation failed."
     };
-  } finally {
+    } finally {
     await stopAutoPresence(
       sock,
       jid,
@@ -1698,11 +1698,13 @@ if (shouldContinue) {
   }
 }
 
-    /*
-    |--------------------------------------------------------------------------
-    | COMMANDS: SAVE / SEND WITHOUT PREFIX
-    |--------------------------------------------------------------------------
-    */
+} // Fèmen kondisyon hasSession(jid)
+
+/*
+|--------------------------------------------------------------------------
+| COMMANDS: SAVE / SEND WITHOUT PREFIX
+|--------------------------------------------------------------------------
+*/
 
     const plainCommand =
       (messageText || "").trim().toLowerCase();
