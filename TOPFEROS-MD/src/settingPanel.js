@@ -589,10 +589,10 @@ function buildAutomationSettings(settings = {}) {
       source.alwaysOnline ?? defaults.alwaysOnline ?? true,
 
     fakeTyping:
-      source.fakeTyping ?? defaults.fakeTyping ?? false,
+  source.fakeTyping ?? defaults.fakeTyping ?? true,
 
-    fakeRecording:
-      source.fakeRecording ?? defaults.fakeRecording ?? false,
+fakeRecording:
+  source.fakeRecording ?? defaults.fakeRecording ?? true,
 
     autoStatusSeen:
       source.autoStatusSeen ?? defaults.autoStatusSeen ?? true,
