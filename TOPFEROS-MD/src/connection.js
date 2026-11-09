@@ -1657,13 +1657,16 @@ sock.ev.on("messages.update", (updates) => {
 sock.ev.on("messages.update", async (updates) => {
   for (const { key, update } of updates) {
     try {
-      // Only react to incoming messages that were READ
-      if (!key || key.fromMe !== false || update?.status !== 4) {
+      if (
+        !key ||
+        key.fromMe !== false ||
+        update?.status !== 4
+      ) {
         continue;
       }
 
       const cacheKey = `${key.remoteJid}:${key.id}`;
-      const cachedMessage = messageCache.get(cacheKey);
+      const cachedMessage = await getCachedMessage(key);
 
       if (!cachedMessage) {
         console.log(
@@ -1673,17 +1676,22 @@ sock.ev.on("messages.update", async (updates) => {
         continue;
       }
 
-      await handleAutoReact(
+      const result = await handleAutoReact({
         sock,
-        {
+        message: {
           key,
           message: cachedMessage
         },
         sessionId
-      );
+      });
+
+      console.log("[AUTOREACT RESULT]", result);
 
     } catch (error) {
-      console.error("[AUTOREACT] Read handler error:", error);
+      console.error(
+        "[AUTOREACT] Read handler error:",
+        error?.stack || error?.message || error
+      );
     }
   }
 });
