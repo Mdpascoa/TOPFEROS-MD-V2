@@ -18,6 +18,9 @@ const {
   getBaileys
 } = require("../services/baileysRuntime");
 
+const {
+  handleAutoReact
+} = require("../services/autoReactService");
 
 const {
   useNeonAuthState,
