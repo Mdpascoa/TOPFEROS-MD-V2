@@ -1575,6 +1575,17 @@ sock.ev.on(
       return;
     }
 
+sock.ev.on("messages.update", (updates) => {
+  for (const { key, update } of updates) {
+    console.log("[AUTOREACT READ TEST]", {
+      id: key?.id,
+      remoteJid: key?.remoteJid,
+      fromMe: key?.fromMe,
+      status: update?.status
+    });
+  }
+});
+
     for (const message of event.messages) {
       try {
         if (!message?.message) {
