@@ -118,12 +118,15 @@ function rememberMessage(key) {
 */
 
 function getAllowedEmojiFallback(text, emojis) {
-  const suggested =
-    aiReactionService.getFallbackEmoji({ text });
+  if (!Array.isArray(emojis) || emojis.length === 0) {
+    return null;
+  }
 
-  return emojis.includes(suggested)
-    ? suggested
-    : emojis[0];
+  const randomIndex = Math.floor(
+    Math.random() * emojis.length
+  );
+
+  return emojis[randomIndex];
 }
 
 /*
@@ -134,26 +137,32 @@ function getAllowedEmojiFallback(text, emojis) {
 
 async function chooseReactionEmoji(text, configuredEmojis) {
 
-  // USER HAS PROVIDED PERSONAL EMOJIS
+  // MODE 1: USER PROVIDED EMOJIS
   if (configuredEmojis.length > 0) {
 
-    if (!text) return configuredEmojis[0];
+    if (!text) {
+      return getAllowedEmojiFallback(
+        text,
+        configuredEmojis
+      );
+    }
 
     const prompt = [
-      "You select one WhatsApp reaction emoji for a message.",
-      "Choose the emoji that best matches the meaning and tone of the message.",
-      "You MUST choose exactly one emoji from the allowed list.",
-      "Never create, modify, or return an emoji outside that list.",
+      "You select one WhatsApp reaction emoji.",
+      "Analyze the meaning and emotional tone of the message.",
+      "Choose exactly ONE emoji from the allowed list.",
+      "Never return an emoji outside the allowed list.",
       `Allowed emojis: ${configuredEmojis.join(" ")}`,
       `Message: ${text}`,
-      "Return only the selected emoji, with no explanation."
+      "Return only the selected emoji."
     ].join("\n");
 
     try {
       const response = await withTimeout(
         askAI(prompt, {
           systemPrompt:
-            "You are a precise emoji selector. Obey the allowed emoji list exactly.",
+            "You are a precise emoji selector. " +
+            "Only select from the allowed emoji list.",
           temperature: 0.1,
           maxTokens: 32
         })
@@ -172,25 +181,24 @@ async function chooseReactionEmoji(text, configuredEmojis) {
         return extracted;
       }
 
-      console.warn(
-        "[AUTO REACT] AI returned an emoji outside the configured list."
-      );
-
     } catch (error) {
-      console.error(
-        "[AUTO REACT] AI selection failed:",
+      console.warn(
+        "[AUTO REACT] AI unavailable. Using user emoji list:",
         error?.message || error
       );
     }
 
+    // AI UNAVAILABLE: RANDOM USER EMOJI
     return getAllowedEmojiFallback(
       text,
       configuredEmojis
     );
   }
 
-  // USER HAS NOT PROVIDED PERSONAL EMOJIS
-  if (!text) return null;
+  // MODE 2: NO USER EMOJI
+  if (!text) {
+    return null;
+  }
 
   try {
     const result = await withTimeout(
@@ -201,18 +209,30 @@ async function chooseReactionEmoji(text, configuredEmojis) {
       })
     );
 
-    return (
-      result?.emoji ||
-      aiReactionService.getFallbackEmoji({ text })
+    // Only accept a real AI response.
+    if (
+      result &&
+      (result.source === "gemini" ||
+       result.source === "gemini-image") &&
+      result.emoji
+    ) {
+      return result.emoji;
+    }
+
+    // No AI and no configured emoji: NO REACTION.
+    console.warn(
+      "[AUTO REACT] AI unavailable and no custom emojis configured."
     );
 
+    return null;
+
   } catch (error) {
-    console.error(
-      "[AUTO REACT] Default AI selection failed:",
+    console.warn(
+      "[AUTO REACT] AI unavailable and no custom emojis configured:",
       error?.message || error
     );
 
-    return aiReactionService.getFallbackEmoji({ text });
+    return null;
   }
 }
 
