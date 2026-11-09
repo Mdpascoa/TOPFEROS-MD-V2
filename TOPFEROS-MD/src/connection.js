@@ -1578,6 +1578,15 @@ sock.ev.on(
       return;
     }
 
+// DEBUG: DETEKTE LÈ MESAJ YO LI
+sock.ev.on("messages.update", (updates) => {
+  console.log("[READ DEBUG] messages.update:", JSON.stringify(updates));
+});
+
+sock.ev.on("message-receipt.update", (updates) => {
+  console.log("[READ DEBUG] message-receipt.update:", JSON.stringify(updates));
+});
+
 sock.ev.on("messages.update", (updates) => {
   for (const { key, update } of updates) {
     console.log("[AUTOREACT READ TEST]", {
