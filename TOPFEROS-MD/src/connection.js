@@ -1644,6 +1644,41 @@ sock.ev.on("messages.update", (updates) => {
   }
 );
 
+// AUTO REACT WHEN INCOMING MESSAGE IS READ
+sock.ev.on("messages.update", async (updates) => {
+  for (const { key, update } of updates) {
+    try {
+      // Only react to incoming messages that were READ
+      if (!key || key.fromMe !== false || update?.status !== 4) {
+        continue;
+      }
+
+      const cacheKey = `${key.remoteJid}:${key.id}`;
+      const cachedMessage = messageCache.get(cacheKey);
+
+      if (!cachedMessage) {
+        console.log(
+          "[AUTOREACT] Message not found in cache:",
+          key.id
+        );
+        continue;
+      }
+
+      await handleAutoReact(
+        sock,
+        {
+          key,
+          message: cachedMessage
+        },
+        sessionId
+      );
+
+    } catch (error) {
+      console.error("[AUTOREACT] Read handler error:", error);
+    }
+  }
+});
+
 // Retounen socket la epi fèmen connectSession().
   return sock;
 }
