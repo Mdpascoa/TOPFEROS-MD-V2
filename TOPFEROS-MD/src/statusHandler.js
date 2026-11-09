@@ -636,6 +636,23 @@ console.error(
       }
     }
 
+    if (seen || reactionSent) {
+      markAsProcessed(cacheKey);
+    }
+
+    return {
+      success: seen || reactionSent,
+      seen,
+      reactionSent,
+      emoji,
+      errors
+    };
+
+  } finally {
+    inFlightStatuses.delete(cacheKey);
+  }
+}
+
 /*
 |--------------------------------------------------------------------------
 | HANDLE STATUS UPSERT
