@@ -553,41 +553,42 @@ console.error(
       }
     }
 
-    /*
+      /*
     |--------------------------------------------------------------------------
     | GEMINI AI EMOJI REFINEMENT
     |--------------------------------------------------------------------------
-    | Run only after initial reaction succeeds.
-    | If AI fails, original emoji remains.
+    | Keep user-configured emojis.
+    | Use AI only when no preferred emoji is configured.
+    | Keep the initial emoji if AI fails.
     |--------------------------------------------------------------------------
     */
 
-    if (reactionSent) {
+    const statusReplyMode =
+      options.statusReplyMode || "ai_emoji";
+
+    const preferredEmojis =
+      getPreferredStatusEmojis(options);
+
+    const shouldUseAI =
+      statusReplyMode !== "emoji_only" &&
+      preferredEmojis.length === 0;
+
+    if (reactionSent && shouldUseAI) {
       try {
         const statusData =
           await buildAIStatusData(message);
 
         const aiResult =
-          await chooseEmojiWithSource(
-            statusData
-          );
+          await chooseEmojiWithSource(statusData);
 
         const aiEmoji =
           getAIEmoji(aiResult);
 
-const preferredEmojis =
-  getPreferredStatusEmojis(options);
-
-const aiEmojiAllowed =
-  preferredEmojis.length === 0 ||
-  preferredEmojis.includes(aiEmoji);
-
         if (
-  aiEmoji &&
-  aiEmojiAllowed &&
-  aiResult?.source?.startsWith("gemini") &&
-  aiEmoji !== emoji
-) {
+          aiEmoji &&
+          aiResult?.source?.startsWith("gemini") &&
+          aiEmoji !== emoji
+        ) {
           try {
             await sendStatusReaction(
               sock,
@@ -634,21 +635,6 @@ const aiEmojiAllowed =
         );
       }
     }
-
-    return {
-      success: seen || reactionSent,
-      messageId,
-      participant,
-      seen,
-      reactionSent,
-      emoji,
-      errors
-    };
-
-  } finally {
-    inFlightStatuses.delete(cacheKey);
-  }
-}
 
 /*
 |--------------------------------------------------------------------------
