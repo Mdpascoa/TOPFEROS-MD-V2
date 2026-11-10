@@ -513,10 +513,10 @@ function buildAutomationSettings(settings = {}) {
       source.alwaysOnline ?? defaults.alwaysOnline ?? true,
 
     fakeTyping:
-  source.fakeTyping ?? defaults.fakeTyping ?? true,
+      source.fakeTyping ?? defaults.fakeTyping ?? true,
 
-fakeRecording:
-  source.fakeRecording ?? defaults.fakeRecording ?? true,
+    fakeRecording:
+      source.fakeRecording ?? defaults.fakeRecording ?? true,
 
     autoStatusSeen:
       source.autoStatusSeen ?? defaults.autoStatusSeen ?? true,
@@ -524,34 +524,42 @@ fakeRecording:
     autoStatusReply:
       source.autoStatusReply ?? defaults.autoStatusReply ?? true,
 
+    autoStatusReact:
+      source.autoStatusReact ?? defaults.autoStatusReact ?? true,
+
+    // AUTO REACT
     autoReact:
-  source.autoReact === true,
+      source.autoReact === true,
 
-autoReactMode:
-  ["all", "private", "group"].includes(source.autoReactMode)
-    ? source.autoReactMode
-    : "all",
+    autoReactMode:
+      ["all", "private", "group"].includes(source.autoReactMode)
+        ? source.autoReactMode
+        : "all",
 
-  if (Array.isArray(value)) {
-    return value
-      .map(item => String(item || "").trim())
-      .filter(Boolean)
-      .slice(0, 40);
-  }
+    autoReactEmojis: (() => {
+      const value = source.autoReactEmojis;
 
-  if (typeof value === "string") {
-    return value
-      .split(/[,\n;]+/)
-      .map(item => item.trim())
-      .filter(Boolean)
-      .slice(0, 40);
-  }
+      if (Array.isArray(value)) {
+        return value
+          .map(item => String(item || "").trim())
+          .filter(Boolean)
+          .slice(0, 40);
+      }
 
-  return [];
-})(),
+      if (typeof value === "string") {
+        return value
+          .split(/[,\n;]+/)
+          .map(item => item.trim())
+          .filter(Boolean)
+          .slice(0, 40);
+      }
+
+      return [];
+    })(),
 
     // ANTI SPAM
-    antiSpam: source.antiSpam === true,
+    antiSpam:
+      source.antiSpam === true,
 
     antiSpamMode:
       ["warn", "delete", "kick", "warn_delete"].includes(source.antiSpamMode)
@@ -583,11 +591,20 @@ autoReactMode:
         ? source.antiBotMode
         : "both",
 
-    botDetection: source.botDetection === true,
-    autoScan: source.autoScan === true,
-    botScore: source.botScore === true,
-    adminNotification: source.adminNotification === true,
-    autoKick: source.autoKick === true,
+    botDetection:
+      source.botDetection === true,
+
+    autoScan:
+      source.autoScan === true,
+
+    botScore:
+      source.botScore === true,
+
+    adminNotification:
+      source.adminNotification === true,
+
+    autoKick:
+      source.autoKick === true,
 
     antiBotAction:
       ["Delete", "Warn", "Block"].includes(source.antiBotAction)
