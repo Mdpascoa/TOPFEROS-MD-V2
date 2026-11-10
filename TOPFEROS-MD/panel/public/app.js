@@ -447,11 +447,15 @@ statusReplyEmojis:
     ? settings.statusReplyEmojis.slice(0, 40)
     : [],
 
-    autoReact: settings.autoReact === true,
-    autoReactMode: settings.autoReactMode || "all",
     autoReactEmojis: Array.isArray(settings.autoReactEmojis)
-      ? settings.autoReactEmojis
-      : [],
+  ? settings.autoReactEmojis
+  : typeof settings.autoReactEmojis === "string"
+    ? settings.autoReactEmojis
+        .split(/[\s,;]+/)
+        .map(value => value.trim())
+        .filter(Boolean)
+        .slice(0, 40)
+    : [],
 
     antiSpam: settings.antiSpam === true,
     antiSpamMode: settings.antiSpamMode || "warn",
@@ -780,12 +784,12 @@ statusReplyEmojis:
       autoReactMode:
         getFieldValue("autoReactMode", "all"),
 
-      autoReactEmojis:
-        getFieldValue("autoReactEmojis", "")
-          .split(/[\s,]+/)
-          .map(value => value.trim())
-          .filter(Boolean)
-          .slice(0, 40),
+     autoReactEmojis:
+  getFieldValue("autoReactEmojis", "")
+    .split(/[\s,;]+/)
+    .map(value => value.trim())
+    .filter(Boolean)
+    .slice(0, 40),
 
       antiSpam:
         Boolean(getFieldValue("antiSpam")),
