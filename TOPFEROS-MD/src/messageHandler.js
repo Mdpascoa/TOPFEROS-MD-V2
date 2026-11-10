@@ -1760,14 +1760,23 @@ if (shouldContinue) {
       };
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | PARSE COMMAND
-    |--------------------------------------------------------------------------
-    */
+/*
+|--------------------------------------------------------------------------
+| PARSE COMMAND
+|--------------------------------------------------------------------------
+*/
 
-    const parsed =
-      parseCommand(messageText, sessionId);
+const parsed =
+  parseCommand(messageText, sessionId);
+
+// Ignore messages that are not bot commands.
+if (!parsed) {
+  return {
+    success: false,
+    ignored: true,
+    reason: "Message is not a command."
+  };
+}
 
     /*
     |--------------------------------------------------------------------------
