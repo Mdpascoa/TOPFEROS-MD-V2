@@ -36,19 +36,18 @@ function getRandomInitialStatusEmoji() {
 }
 
 function getPreferredStatusEmojis(options = {}) {
-  if (!Array.isArray(options.autoReactEmojis)) {
+  if (!Array.isArray(options.statusReplyEmojis)) {
     return [];
   }
 
   return [...new Set(
-    options.autoReactEmojis
-      .filter(
-        emoji =>
-          typeof emoji === "string" &&
-          emoji.trim()
+    options.statusReplyEmojis
+      .filter(emoji =>
+        typeof emoji === "string" &&
+        emoji.trim()
       )
       .map(emoji => emoji.trim())
-  )];
+  )].slice(0, 40);
 }
 
 function getInitialStatusEmoji(options = {}) {
@@ -469,17 +468,30 @@ async function processStatus(
 
     /*
     |--------------------------------------------------------------------------
-    | IMMEDIATE EMOJI REACTION
-    |--------------------------------------------------------------------------
-    | No Gemini AI waiting.
-    | No media download waiting.
+    | AUTO STATUS REPLY — AI FIRST
     |--------------------------------------------------------------------------
     */
 
     if (shouldReact) {
-      emoji = getInitialStatusEmoji(options);
+      const preferredEmojis =
+        getPreferredStatusEmojis(options);
 
       try {
+        const statusData =
+          await buildAIStatusData(message);
+
+        const aiResult =
+          await chooseEmojiWithSource(
+            statusData,
+            preferredEmojis
+          );
+
+        emoji = getAIEmoji(aiResult);
+
+        if (!emoji) {
+          throw new Error("No valid status emoji selected.");
+        }
+
         await sendStatusReaction(
           sock,
           message,
@@ -488,40 +500,62 @@ async function processStatus(
 
         reactionSent = true;
 
-        markAsProcessed(cacheKey);
-
         console.log(
-          "[STATUS REACT] Immediate fallback sent:",
-          messageId,
-          emoji
+          "[STATUS REPLY] Reaction sent:",
+          {
+            statusId: messageId,
+            emoji,
+            source: aiResult.source,
+            customEmojiCount: preferredEmojis.length
+          }
         );
 
       } catch (error) {
         errors.push(
-          `reaction: ${error?.message || String(error)}`
+          `status-reply: ${error?.message || String(error)}`
         );
 
-console.error(
-  "[STATUS REACT] Immediate reaction failed:",
-  {
-    message: error?.message,
-    statusCode: error?.output?.statusCode,
-    reason: error?.output?.payload?.error,
-    details: error?.output?.payload?.message,
-    participantType:
-      participant.endsWith("@lid")
-        ? "LID"
-        : "PN",
-        statusId: messageId
-  }
-);
+        // Sekou si sèvis AI a pa disponib.
+        const fallbackList =
+          preferredEmojis.length > 0
+            ? preferredEmojis
+            : INITIAL_STATUS_EMOJIS;
 
+        emoji = fallbackList[
+          Math.floor(Math.random() * fallbackList.length)
+        ];
+
+        try {
+          await sendStatusReaction(
+            sock,
+            message,
+            emoji
+          );
+
+          reactionSent = true;
+
+          console.log(
+            "[STATUS REPLY] Fallback reaction sent:",
+            emoji
+          );
+
+        } catch (fallbackError) {
+          errors.push(
+            `fallback: ${fallbackError?.message || String(fallbackError)}`
+          );
+
+          console.error(
+            "[STATUS REPLY] Fallback failed:",
+            fallbackError?.message || fallbackError
+          );
+        }
       }
     }
 
     /*
     |--------------------------------------------------------------------------
-    | AUTO STATUS SEEN |--------------------------------------------------------------------------
+    | AUTO STATUS SEEN
+    |--------------------------------------------------------------------------
     */
 
     if (shouldMarkSeen) {
@@ -549,89 +583,6 @@ console.error(
         console.error(
           "[STATUS SEEN] Failed:",
           error?.stack || error
-        );
-      }
-    }
-
-      /*
-    |--------------------------------------------------------------------------
-    | GEMINI AI EMOJI REFINEMENT
-    |--------------------------------------------------------------------------
-    | Keep user-configured emojis.
-    | Use AI only when no preferred emoji is configured.
-    | Keep the initial emoji if AI fails.
-    |--------------------------------------------------------------------------
-    */
-
-    const statusReplyMode =
-      options.statusReplyMode || "ai_emoji";
-
-    const preferredEmojis =
-      getPreferredStatusEmojis(options);
-
-    const shouldUseAI =
-      statusReplyMode !== "emoji_only" &&
-      preferredEmojis.length === 0;
-
-    if (reactionSent && shouldUseAI) {
-      try {
-        const statusData =
-          await buildAIStatusData(message);
-
-        const aiResult =
-          await chooseEmojiWithSource(statusData);
-
-        const aiEmoji =
-          getAIEmoji(aiResult);
-
-        if (
-          aiEmoji &&
-          aiResult?.source?.startsWith("gemini") &&
-          aiEmoji !== emoji
-        ) {
-          try {
-            await sendStatusReaction(
-              sock,
-              message,
-              aiEmoji
-            );
-
-            emoji = aiEmoji;
-
-            console.log(
-              "[STATUS AI] Emoji update sent:",
-              messageId,
-              emoji
-            );
-
-          } catch (error) {
-            errors.push(
-              `ai-reaction: ${error?.message || String(error)}`
-            );
-
-            console.error(
-              "[STATUS AI] Emoji update failed; original reaction kept:",
-              error?.message || error
-            );
-          }
-
-        } else {
-          console.log(
-            "[STATUS AI] Original emoji kept:",
-            messageId,
-            emoji,
-            aiResult?.source || "no-change"
-          );
-        }
-
-      } catch (error) {
-        errors.push(
-          `ai: ${error?.message || String(error)}`
-        );
-
-        console.error(
-          "[STATUS AI] Analysis failed; original reaction kept:",
-          error?.message || error
         );
       }
     }
