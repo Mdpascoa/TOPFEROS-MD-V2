@@ -214,6 +214,23 @@ const automation = {
       "AUTO_STATUS_REPLY",
       true
     ),
+  /*
+   * AUTO REACT
+   */
+
+  autoReact:
+    envBoolean(
+      "AUTO_REACT",
+      false
+    ),
+
+  autoReactMode:
+    envString(
+      "AUTO_REACT_MODE",
+      "all"
+    ),
+
+  autoReactEmojis: [],
 
   autoStatusReact:
     envBoolean(
