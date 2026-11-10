@@ -63,22 +63,42 @@ function extractText(message) {
 */
 
 function cleanEmojiList(value) {
-  if (Array.isArray(value)) {
-    return value
-      .map(item => String(item || "").trim())
-      .filter(Boolean)
-      .slice(0, 40);
+  const input = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? [value]
+      : [];
+
+  const segmenter = new Intl.Segmenter("en", {
+    granularity: "grapheme"
+  });
+
+  const emojis = [];
+
+  for (const item of input) {
+    const text = String(item || "").trim();
+
+    if (!text) continue;
+
+    // Separe lis ki itilize espas, vigil oswa pwen-virgil.
+    const tokens = text.split(/[\s,;]+/).filter(Boolean);
+
+    for (const token of tokens) {
+      for (const part of segmenter.segment(token)) {
+        const emoji = part.segment.trim();
+
+        if (emoji && !emojis.includes(emoji)) {
+          emojis.push(emoji);
+        }
+
+        if (emojis.length >= 40) {
+          return emojis;
+        }
+      }
+    }
   }
 
-  if (typeof value === "string") {
-    return value
-      .split(/[,\n;]+/)
-      .map(item => item.trim())
-      .filter(Boolean)
-      .slice(0, 40);
-  }
-
-  return [];
+  return emojis;
 }
 
 /*
