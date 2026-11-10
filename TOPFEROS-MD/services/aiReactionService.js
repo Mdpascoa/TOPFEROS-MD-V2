@@ -35,6 +35,43 @@ function getRandomDefaultEmoji() {
   ];
 }
 
+function cleanStatusEmojiList(value) {
+  const input = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? [value]
+      : [];
+
+  const emojis = [];
+
+  for (const item of input) {
+    const tokens = String(item || "")
+      .trim()
+      .split(/[\s,;]+/)
+      .filter(Boolean);
+
+    for (const emoji of tokens) {
+      if (!emojis.includes(emoji)) {
+        emojis.push(emoji);
+      }
+
+      if (emojis.length >= 40) return emojis;
+    }
+  }
+
+  return emojis;
+}
+
+function getStatusFallback(statusData, allowedEmojis) {
+  if (allowedEmojis.length > 0) {
+    return allowedEmojis[
+      Math.floor(Math.random() * allowedEmojis.length)
+    ];
+  }
+
+  return getRandomDefaultEmoji();
+}
+
 /*
 |--------------------------------------------------------------------------
 | FALLBACK EMOJI
