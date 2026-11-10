@@ -63,12 +63,22 @@ function extractText(message) {
 */
 
 function cleanEmojiList(value) {
-  if (!Array.isArray(value)) return [];
+  if (Array.isArray(value)) {
+    return value
+      .map(item => String(item || "").trim())
+      .filter(Boolean)
+      .slice(0, 40);
+  }
 
-  return value
-    .map(item => String(item || "").trim())
-    .filter(Boolean)
-    .slice(0, 40);
+  if (typeof value === "string") {
+    return value
+      .split(/[,\n;]+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .slice(0, 40);
+  }
+
+  return [];
 }
 
 /*
@@ -132,12 +142,127 @@ function extractAIEmoji(response) {
 |--------------------------------------------------------------------------
 */
 
+
 async function chooseReactionEmoji(text, configuredEmojis = []) {
   const messageText = String(text || "").trim();
 
   if (!messageText) return null;
 
   const allowedEmojis = cleanEmojiList(configuredEmojis);
+
+  // Chwazi yon emoji user te mete nan panèl la.
+  function customEmojiFallback() {
+    if (allowedEmojis.length === 0) return null;
+
+    const index = Math.floor(
+      Math.random() * allowedEmojis.length
+    );
+
+    const emoji = allowedEmojis[index];
+
+    console.log(
+      "[AUTO REACT] Using user's custom emoji:",
+      emoji
+    );
+
+    return emoji;
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | USER CUSTOM EMOJIS — AI FIRST, CUSTOM FALLBACK
+  |--------------------------------------------------------------------------
+  */
+
+  if (allowedEmojis.length > 0) {
+    try {
+      const prompt = [
+        "Choose the best WhatsApp reaction for this message.",
+        "Analyze the meaning, emotion and context.",
+        "Choose exactly ONE emoji from the allowed list.",
+        `Allowed emojis: ${allowedEmojis.join(" ")}`,
+        `Message: ${messageText}`,
+        "Return only the emoji."
+      ].join("\n");
+
+      const response = await withTimeout(
+        askAI(prompt, {
+          systemPrompt:
+            "You are a WhatsApp emoji selector. " +
+            "Choose the most appropriate emoji from the allowed list only.",
+
+          temperature: 0.1,
+          maxTokens: 32
+        })
+      );
+
+      const emoji = extractAIEmoji(response);
+
+      if (emoji && allowedEmojis.includes(emoji)) {
+        console.log(
+          "[AUTO REACT] AI selected custom emoji:",
+          emoji
+        );
+
+        return emoji;
+      }
+
+      console.warn(
+        "[AUTO REACT] AI returned an invalid emoji. Using custom fallback."
+      );
+
+      return customEmojiFallback();
+
+    } catch (error) {
+      console.warn(
+        "[AUTO REACT] AI unavailable. Using custom emoji:",
+        error?.message || error
+      );
+
+      return customEmojiFallback();
+    }
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | NO CUSTOM EMOJIS — GEMINI ONLY
+  |--------------------------------------------------------------------------
+  */
+
+  try {
+    const result = await withTimeout(
+      aiReactionService.chooseEmojiWithSource({
+        text: messageText,
+        caption: messageText,
+        mediaType: "text"
+      })
+    );
+
+    if (
+      result?.emoji &&
+      (
+        result.source === "gemini" ||
+        result.source === "gemini-image"
+      )
+    ) {
+      return result.emoji;
+    }
+
+    console.warn(
+      "[AUTO REACT] Gemini did not select an emoji."
+    );
+
+    return null;
+
+  } catch (error) {
+    console.error(
+      "[AUTO REACT] Gemini unavailable:",
+      error?.message || error
+    );
+
+    return null;
+  }
+}
 
   /*
   |--------------------------------------------------------------------------
