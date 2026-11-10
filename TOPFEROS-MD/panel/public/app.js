@@ -435,55 +435,67 @@ function normalizeAutomation(settings = {}) {
     alwaysOnline: settings.alwaysOnline !== false,
     fakeTyping: settings.fakeTyping === true,
     fakeRecording: settings.fakeRecording === true,
+
     autoStatusSeen: settings.autoStatusSeen !== false,
     autoStatusReply: settings.autoStatusReply !== false,
     autoStatusReact: settings.autoStatusReact !== false,
 
-statusReplyMode:
-  settings.statusReplyMode || "ai_emoji",
+    statusReplyMode:
+      settings.statusReplyMode || "ai_emoji",
 
-statusReplyEmojis:
-  Array.isArray(settings.statusReplyEmojis)
-    ? settings.statusReplyEmojis.slice(0, 40)
-    : [],
+    statusReplyEmojis:
+      Array.isArray(settings.statusReplyEmojis)
+        ? settings.statusReplyEmojis.slice(0, 40)
+        : [],
+
+    // AUTO REACT
+    autoReact: settings.autoReact === true,
+
+    autoReactMode:
+      ["all", "private", "group"].includes(settings.autoReactMode)
+        ? settings.autoReactMode
+        : "all",
 
     autoReactEmojis: Array.isArray(settings.autoReactEmojis)
-  ? settings.autoReactEmojis
-  : typeof settings.autoReactEmojis === "string"
-    ? settings.autoReactEmojis
-        .split(/[\s,;]+/)
-        .map(value => value.trim())
-        .filter(Boolean)
-        .slice(0, 40)
-    : [],
+      ? settings.autoReactEmojis
+          .map(value => String(value || "").trim())
+          .filter(Boolean)
+          .slice(0, 40)
+      : typeof settings.autoReactEmojis === "string"
+        ? settings.autoReactEmojis
+            .split(/[\s,;]+/)
+            .map(value => value.trim())
+            .filter(Boolean)
+            .slice(0, 40)
+        : [],
 
     antiSpam: settings.antiSpam === true,
     antiSpamMode: settings.antiSpamMode || "warn",
 
     antiDelete: settings.antiDelete !== false,
+    antiDeleteMode: settings.antiDeleteMode || "private",
+
     antiCall: settings.antiCall === true,
     antiBug: settings.antiBug === true,
 
-   antiBotMode: ["groups", "private", "both"].includes(
-  settings.antiBotMode
-)
-  ? settings.antiBotMode
-  : "groups",
+    antiBotMode: ["groups", "private", "both"].includes(
+      settings.antiBotMode
+    )
+      ? settings.antiBotMode
+      : "groups",
 
-botDetection: settings.botDetection === true,
-autoScan: settings.autoScan === true,
-botScore: settings.botScore === true,
-adminNotification: settings.adminNotification === true,
-autoKick: settings.autoKick === true,
-antiBotFilter: settings.antiBotFilter === true,
+    botDetection: settings.botDetection === true,
+    autoScan: settings.autoScan === true,
+    botScore: settings.botScore === true,
+    adminNotification: settings.adminNotification === true,
+    autoKick: settings.autoKick === true,
+    antiBotFilter: settings.antiBotFilter === true,
 
-antiBotAction: ["Delete", "Warn", "Kick"].includes(
-  settings.antiBotAction
-)
-  ? settings.antiBotAction
-  : "Delete",
-
-    antiDeleteMode: settings.antiDeleteMode || "private",
+    antiBotAction: ["Delete", "Warn", "Kick"].includes(
+      settings.antiBotAction
+    )
+      ? settings.antiBotAction
+      : "Delete",
 
     antiBlockNumbers: Array.isArray(settings.antiBlockNumbers)
       ? settings.antiBlockNumbers
