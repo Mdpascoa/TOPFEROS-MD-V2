@@ -796,12 +796,35 @@ statusReplyEmojis:
       autoReactMode:
         getFieldValue("autoReactMode", "all"),
 
-     autoReactEmojis:
-  getFieldValue("autoReactEmojis", "")
+autoReactEmojis: (() => {
+  const value = getFieldValue("autoReactEmojis", "");
+
+  const segmenter = new Intl.Segmenter("en", {
+    granularity: "grapheme"
+  });
+
+  const emojis = [];
+
+  const tokens = String(value)
     .split(/[\s,;]+/)
-    .map(value => value.trim())
-    .filter(Boolean)
-    .slice(0, 40),
+    .filter(Boolean);
+
+  for (const token of tokens) {
+    for (const part of segmenter.segment(token)) {
+      const emoji = part.segment.trim();
+
+      if (emoji && !emojis.includes(emoji)) {
+        emojis.push(emoji);
+      }
+
+      if (emojis.length >= 40) {
+        return emojis;
+      }
+    }
+  }
+
+  return emojis;
+})(),
 
       antiSpam:
         Boolean(getFieldValue("antiSpam")),
