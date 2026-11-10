@@ -1714,15 +1714,15 @@ sock.ev.on("call", async (calls) => {
       const key = item?.key;
       const status = Number(item?.update?.status);
 
-      if (
-        key?.fromMe === false &&
-        status === 3
-      ) {
-        await reactToReadMessage(
-          key,
-          "messages.update:READ"
-        );
-      }
+if (
+  key?.fromMe === false &&
+  status === 4
+) {
+  await reactToReadMessage(
+    key,
+    "messages.update:READ"
+       );
+     }
     }
   });
 
