@@ -1131,6 +1131,24 @@ Object.defineProperties(statusOptions, {
         : [];
     }
   }
+statusReplyEmojis: {
+  enumerable: true,
+  get() {
+    const settings =
+      settingPanel.getSessionSettings(sessionId);
+
+    const emojis =
+      settings?.automation?.statusReplyEmojis;
+
+    return Array.isArray(emojis)
+      ? emojis.filter(
+          emoji =>
+            typeof emoji === "string" &&
+            emoji.trim()
+        ).slice(0, 40)
+      : [];
+  }
+}
 });
 
 
