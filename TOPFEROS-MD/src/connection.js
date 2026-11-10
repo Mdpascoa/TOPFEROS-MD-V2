@@ -1069,7 +1069,6 @@ const session = {
 
   try {
     const statusOptions = {};
-
 Object.defineProperties(statusOptions, {
   autoStatusReact: {
     enumerable: true,
@@ -1101,21 +1100,6 @@ Object.defineProperties(statusOptions, {
     }
   },
 
-  autoStatusReply: {
-    enumerable: true,
-    get() {
-      const current = activeSessions.get(sessionId);
-      const settings = settingPanel.getSessionSettings(sessionId);
-      const panelValue = settings?.automation?.autoStatusReply;
-
-      if (typeof panelValue === "boolean") {
-        return panelValue;
-      }
-
-      return current?.automation?.autoStatusReply === true;
-    }
-  },
-
   autoReactEmojis: {
     enumerable: true,
     get() {
@@ -1123,63 +1107,15 @@ Object.defineProperties(statusOptions, {
       const emojis = settings?.automation?.autoReactEmojis;
 
       return Array.isArray(emojis)
-        ? emojis.filter(
-            emoji =>
-              typeof emoji === "string" &&
-              emoji.trim()
-          ).slice(0, 40)
+        ? emojis
+            .filter(emoji =>
+              typeof emoji === "string" && emoji.trim()
+            )
+            .slice(0, 40)
         : [];
     }
   }
-
-statusReplyEmojis: {
-  enumerable: true,
-  get() {
-    const settings =
-      settingPanel.getSessionSettings(sessionId);
-
-    const emojis =
-      settings?.automation?.statusReplyEmojis;
-
-    return Array.isArray(emojis)
-      ? emojis.filter(
-          emoji =>
-            typeof emoji === "string" &&
-            emoji.trim()
-        ).slice(0, 40)
-      : [];
-  }
-}
 });
-
-
-    statusOptions.aiModel =
-      process.env.GEMINI_MODEL ||
-      config?.ai?.model;
-
-    attachStatusHandler(
-      sock,
-      statusOptions
-    );
-
-    logger.info(
-      `[${sessionId}] Status handler attached. ` +
-      `AutoReact=${statusOptions.autoStatusReact}, ` +
-      `AutoSeen=${statusOptions.autoStatusSeen}`
-    );
-
-  } catch (error) {
-    logger.error(
-      {
-        error:
-          error?.stack ||
-          error?.message ||
-          String(error)
-      },
-      `[${sessionId}] Failed to attach status handler.`
-    );
-  }
-
   /* |--------------------------------------------------------------------------
    | CONNECTION UPDATE
    |--------------------------------------------------------------------------
