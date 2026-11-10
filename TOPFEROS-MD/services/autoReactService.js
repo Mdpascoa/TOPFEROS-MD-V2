@@ -2,7 +2,7 @@
 "use strict";
 
 // 🦁 TOPFEROS MD V2.0.0
-// AUTO REACT SERVICE
+// AUTO REACT SERVICE — AI FIRST
 
 const settingPanel = require("../src/settingPanel");
 const { askAI } = require("./ai");
@@ -22,11 +22,12 @@ const processedMessages = new Map();
 function unwrapMessageContent(message) {
   let content = message?.message || {};
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 6; i += 1) {
     const wrapper =
       content.ephemeralMessage?.message ||
       content.viewOnceMessage?.message ||
       content.viewOnceMessageV2?.message ||
+      content.viewOnceMessageV2Extension?.message ||
       content.documentWithCaptionMessage?.message;
 
     if (!wrapper) break;
@@ -46,16 +47,18 @@ function extractText(message) {
     content.imageMessage?.caption ||
     content.videoMessage?.caption ||
     content.documentMessage?.caption ||
+    content.audioMessage?.caption ||
     content.buttonsResponseMessage?.selectedDisplayText ||
     content.listResponseMessage?.title ||
     content.templateButtonReplyMessage?.selectedDisplayText ||
+    content.interactiveResponseMessage?.body?.text ||
     ""
   ).trim();
 }
 
 /*
 |--------------------------------------------------------------------------
-| CLEAN EMOJI LIST
+| CLEAN CUSTOM EMOJIS
 |--------------------------------------------------------------------------
 */
 
@@ -113,122 +116,119 @@ function rememberMessage(key) {
 
 /*
 |--------------------------------------------------------------------------
-| PERSONALIZED EMOJI FALLBACK
+| EXTRACT AI EMOJI
 |--------------------------------------------------------------------------
 */
 
-function getAllowedEmojiFallback(text, emojis) {
-  if (!Array.isArray(emojis) || emojis.length === 0) {
-    return null;
-  }
+function extractAIEmoji(response) {
+  const answer = aiReactionService.extractAIText(response);
 
-  const randomIndex = Math.floor(
-    Math.random() * emojis.length
-  );
-
-  return emojis[randomIndex];
+  return aiReactionService.extractEmoji(answer);
 }
 
 /*
 |--------------------------------------------------------------------------
-| AI EMOJI SELECTION
+| CHOOSE REACTION EMOJI
 |--------------------------------------------------------------------------
 */
 
-async function chooseReactionEmoji(text, configuredEmojis) {
+async function chooseReactionEmoji(text, configuredEmojis = []) {
+  const messageText = String(text || "").trim();
 
-  // MODE 1: USER PROVIDED EMOJIS
-  if (configuredEmojis.length > 0) {
+  if (!messageText) return null;
 
-    if (!text) {
-      return getAllowedEmojiFallback(
-        text,
-        configuredEmojis
-      );
-    }
+  const allowedEmojis = cleanEmojiList(configuredEmojis);
 
+  /*
+  |--------------------------------------------------------------------------
+  | MODE 1: USER CUSTOM EMOJIS
+  |--------------------------------------------------------------------------
+  */
+
+  if (allowedEmojis.length > 0) {
     const prompt = [
-      "You select one WhatsApp reaction emoji.",
-      "Analyze the meaning and emotional tone of the message.",
-      "Choose exactly ONE emoji from the allowed list.",
-      "Never return an emoji outside the allowed list.",
-      `Allowed emojis: ${configuredEmojis.join(" ")}`,
-      `Message: ${text}`,
-      "Return only the selected emoji."
+      "You are choosing a WhatsApp reaction for a message.",
+      "Understand the message's meaning, tone, and context.",
+      "Choose the ONE emoji that best matches the message.",
+      "You MUST choose exactly one emoji from the allowed list.",
+      "Do not invent or return any emoji outside the list.",
+      `Allowed emojis: ${allowedEmojis.join(" ")}`,
+      `Message: ${messageText}`,
+      "Return only the selected emoji, with no explanation."
     ].join("\n");
 
     try {
       const response = await withTimeout(
         askAI(prompt, {
           systemPrompt:
-            "You are a precise emoji selector. " +
-            "Only select from the allowed emoji list.",
+            "You are a precise WhatsApp reaction selector. " +
+            "Choose the most semantically appropriate emoji. " +
+            "Strictly obey the allowed emoji list. Return only one emoji.",
+
           temperature: 0.1,
           maxTokens: 32
         })
       );
 
-      const answer =
-        aiReactionService.extractAIText(response);
+      const emoji = extractAIEmoji(response);
 
-      const extracted =
-        aiReactionService.extractEmoji(answer);
-
-      if (
-        extracted &&
-        configuredEmojis.includes(extracted)
-      ) {
-        return extracted;
+      if (emoji && allowedEmojis.includes(emoji)) {
+        return emoji;
       }
 
-    } catch (error) {
       console.warn(
-        "[AUTO REACT] AI unavailable. Using user emoji list:",
+        "[AUTO REACT] AI returned no valid emoji from the user's list."
+      );
+
+      return null;
+
+    } catch (error) {
+      console.error(
+        "[AUTO REACT] Custom emoji AI selection failed:",
         error?.message || error
       );
+
+      return null;
     }
-
-    // AI UNAVAILABLE: RANDOM USER EMOJI
-    return getAllowedEmojiFallback(
-      text,
-      configuredEmojis
-    );
   }
 
-  // MODE 2: NO USER EMOJI
-  if (!text) {
-    return null;
-  }
+  /*
+  |--------------------------------------------------------------------------
+  | MODE 2: NO CUSTOM EMOJI — GEMINI DECIDES
+  |--------------------------------------------------------------------------
+  */
 
   try {
     const result = await withTimeout(
       aiReactionService.chooseEmojiWithSource({
-        text,
-        caption: text,
+        text: messageText,
+        caption: messageText,
         mediaType: "text"
       })
     );
 
-    // Only accept a real AI response.
+    // Accept only a real AI decision.
+    // Do not accept random/local fallback emojis.
+
     if (
-      result &&
-      (result.source === "gemini" ||
-       result.source === "gemini-image") &&
-      result.emoji
+      result?.emoji &&
+      (
+        result.source === "gemini" ||
+        result.source === "gemini-image"
+      )
     ) {
       return result.emoji;
     }
 
-    // No AI and no configured emoji: NO REACTION.
     console.warn(
-      "[AUTO REACT] AI unavailable and no custom emojis configured."
+      "[AUTO REACT] Gemini did not return an AI-selected emoji."
     );
 
     return null;
 
   } catch (error) {
-    console.warn(
-      "[AUTO REACT] AI unavailable and no custom emojis configured:",
+    console.error(
+      "[AUTO REACT] Gemini selection failed:",
       error?.message || error
     );
 
@@ -256,20 +256,15 @@ async function handleAutoReact({
     };
   }
 
-  const jid = String(
-    message.key.remoteJid || ""
-  );
-
-  const messageId = String(
-    message.key.id || ""
-  );
+  const jid = String(message.key.remoteJid || "");
+  const messageId = String(message.key.id || "");
 
   if (
     !jid ||
     !messageId ||
     jid === "status@broadcast" ||
-    message.key.fromMe === true ||
-    jid.endsWith("@newsletter")
+    jid.endsWith("@newsletter") ||
+    message.key.fromMe === true
   ) {
     return {
       success: false,
@@ -307,7 +302,7 @@ async function handleAutoReact({
 
   /*
   |--------------------------------------------------------------------------
-  | CHECK MAIN SWITCH
+  | CHECK AUTO REACT SWITCH
   |--------------------------------------------------------------------------
   */
 
@@ -348,7 +343,7 @@ async function handleAutoReact({
 
   /*
   |--------------------------------------------------------------------------
-  | DUPLICATE CHECK
+  | DUPLICATE PROTECTION
   |--------------------------------------------------------------------------
   */
 
@@ -377,18 +372,25 @@ async function handleAutoReact({
     return {
       success: false,
       skipped: true,
-      reason: "Message has no readable text or caption."
+      reason: "Message has no text or caption for AI analysis."
     };
   }
 
   /*
   |--------------------------------------------------------------------------
-  | SELECT APPROPRIATE EMOJI
+  | LOAD USER EMOJIS
   |--------------------------------------------------------------------------
   */
 
-  const configuredEmojis =
-    cleanEmojiList(automation.autoReactEmojis);
+  const configuredEmojis = cleanEmojiList(
+    automation.autoReactEmojis
+  );
+
+  /*
+  |--------------------------------------------------------------------------
+  | AI SELECTS THE EMOJI
+  |--------------------------------------------------------------------------
+  */
 
   const emoji = await chooseReactionEmoji(
     text,
@@ -401,7 +403,7 @@ async function handleAutoReact({
     return {
       success: false,
       skipped: true,
-      reason: "No suitable emoji could be selected."
+      reason: "AI could not select a valid reaction emoji."
     };
   }
 
@@ -422,8 +424,16 @@ async function handleAutoReact({
     return {
       success: true,
       emoji,
+
+      selection:
+        configuredEmojis.length > 0
+          ? "custom-list-ai"
+          : "gemini-ai",
+
       mode,
-      chatType: isGroup ? "group" : "private"
+
+      chatType:
+        isGroup ? "group" : "private"
     };
 
   } catch (error) {
