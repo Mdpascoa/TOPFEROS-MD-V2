@@ -1067,7 +1067,6 @@ const session = {
   |--------------------------------------------------------------------------
   */
 
-  try {
     const statusOptions = {};
 Object.defineProperties(statusOptions, {
   autoStatusReact: {
