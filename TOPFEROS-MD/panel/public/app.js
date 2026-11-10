@@ -440,9 +440,6 @@ function normalizeAutomation(settings = {}) {
     autoStatusReply: settings.autoStatusReply !== false,
     autoStatusReact: settings.autoStatusReact !== false,
 
-    statusReplyMode:
-      settings.statusReplyMode || "ai_emoji",
-
     statusReplyEmojis:
       Array.isArray(settings.statusReplyEmojis)
         ? settings.statusReplyEmojis.slice(0, 40)
@@ -623,14 +620,11 @@ function fillAutomationSettings(automation = {}) {
   setFieldValue("autoStatusReact", data.autoStatusReact);
 
 setFieldValue(
-  "statusReplyMode",
-  data.statusReplyMode
-);
-
-setFieldValue(
-  "statusReplyEmojis",
-  data.statusReplyEmojis.join(" ")
-);
+  "statusReplyEmojis:
+  getFieldValue("statusReplyEmojis", "")
+    .split(/[\s,;]+/)
+    .filter(Boolean)
+    .slice(0, 40),
 
   // AUTO REACT
   setFieldValue("autoReact", data.autoReact);
