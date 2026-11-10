@@ -405,82 +405,6 @@ function getLanguages() {
 }
 
 // ============================================================
-// DEFAULT SETTINGS
-// ============================================================
-
-function buildAutomationSettings(settings) {
-  const source = settings || {};
-
-  const automation = {
-    alwaysOnline: source.alwaysOnline !== false,
-    fakeTyping: source.fakeTyping === true,
-    fakeRecording: source.fakeRecording === true,
-
-    autoStatusSeen: source.autoStatusSeen !== false,
-    autoStatusReply: source.autoStatusReply !== false,
-    autoStatusReact: source.autoStatusReact !== false,
-
-    // AUTO REACT
-    autoReact: source.autoReact === true,
-    autoReactMode: ["all", "private", "group"].includes(source.autoReactMode)
-      ? source.autoReactMode
-      : "all",
-
-    autoReactEmojis: Array.isArray(source.autoReactEmojis)
-      ? source.autoReactEmojis.slice(0, 40).map(String).filter(Boolean)
-      : [],
-
-    // ANTI SPAM
-    antiSpam: source.antiSpam === true,
-    antiSpamMode: [
-      "warn",
-      "delete",
-      "kick",
-      "warn_delete"
-    ].includes(source.antiSpamMode)
-      ? source.antiSpamMode
-      : "warn",
-
-    // ANTI DELETE
-    antiDelete: source.antiDelete !== false,
-    antiDeleteMode:
-      source.antiDeleteMode ||
-      config.automation.antiDeleteMode,
-
-    // ANTI CALL / BUG
-    antiCall: source.antiCall === true,
-    antiBug: source.antiBug === true,
-
-    // ANTI BOT
-    antiBotMode: ["groups", "private", "both"].includes(source.antiBotMode)
-      ? source.antiBotMode
-      : "both",
-
-    botDetection: source.botDetection === true,
-    autoScan: source.autoScan === true,
-    botScore: source.botScore === true,
-    adminNotification: source.adminNotification === true,
-    autoKick: source.autoKick === true,
-
-    antiBotFilter: source.antiBotFilter === true,
-
-    antiBotAction: ["Delete", "Warn", "Kick"].includes(source.antiBotAction)
-      ? source.antiBotAction
-      : "Delete",
-
-    antiBlockNumbers: cleanNumberList(
-      source.antiBlockNumbers
-    )
-  };
-
-  if (!validateAntiDeleteMode(automation.antiDeleteMode)) {
-    throw new Error("Invalid Anti Delete mode.");
-  }
-
-  return automation;
-}
-
-// ============================================================
 // SESSION SETTINGS — TOPFEROS MD V2.0.0
 // ============================================================
 
@@ -602,19 +526,26 @@ fakeRecording:
 
     autoStatusReact:
       source.autoStatusReact ?? defaults.autoStatusReact ?? true,
+   autoReactEmojis: (() => {
+  const value = source.autoReactEmojis;
 
-    // AUTO REACT
-    autoReact: source.autoReact === true,
+  if (Array.isArray(value)) {
+    return value
+      .map(item => String(item || "").trim())
+      .filter(Boolean)
+      .slice(0, 40);
+  }
 
-    autoReactMode:
-      ["all", "private", "group"].includes(source.autoReactMode)
-        ? source.autoReactMode
-        : "all",
+  if (typeof value === "string") {
+    return value
+      .split(/[,\n;]+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .slice(0, 40);
+  }
 
-    autoReactEmojis:
-      Array.isArray(source.autoReactEmojis)
-        ? source.autoReactEmojis.slice(0, 40).map(String).filter(Boolean)
-        : [],
+  return [];
+})(),
 
     // ANTI SPAM
     antiSpam: source.antiSpam === true,
