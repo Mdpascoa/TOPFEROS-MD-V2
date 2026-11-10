@@ -524,10 +524,13 @@ fakeRecording:
     autoStatusReply:
       source.autoStatusReply ?? defaults.autoStatusReply ?? true,
 
-    autoStatusReact:
-      source.autoStatusReact ?? defaults.autoStatusReact ?? true,
-   autoReactEmojis: (() => {
-  const value = source.autoReactEmojis;
+    autoReact:
+  source.autoReact === true,
+
+autoReactMode:
+  ["all", "private", "group"].includes(source.autoReactMode)
+    ? source.autoReactMode
+    : "all",
 
   if (Array.isArray(value)) {
     return value
