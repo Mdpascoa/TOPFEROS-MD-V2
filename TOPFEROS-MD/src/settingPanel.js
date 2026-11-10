@@ -576,6 +576,35 @@ autoReactEmojis: (() => {
   return emojis;
 })(),
 
+statusReplyEmojis: (() => {
+  const value = source.statusReplyEmojis;
+
+  const input = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? [value]
+      : [];
+
+  const emojis = [];
+
+  for (const item of input) {
+    const tokens = String(item || "")
+      .trim()
+      .split(/[\s,;]+/)
+      .filter(Boolean);
+
+    for (const emoji of tokens) {
+      if (!emojis.includes(emoji)) {
+        emojis.push(emoji);
+      }
+
+      if (emojis.length >= 40) return emojis;
+    }
+  }
+
+  return emojis;
+})(),
+
     // ANTI SPAM
     antiSpam:
       source.antiSpam === true,
