@@ -1568,51 +1568,17 @@ sock.ev.on("call", async (calls) => {
    |--------------------------------------------------------------------------
    */
 
-sock.ev.on(
-  "messages.upsert",
-  async (event) => {
-    if (
-      !event ||
-      !Array.isArray(event.messages)
-    ) {
-      return;
-    }
-
-// DEBUG: DETEKTE LÈ MESAJ YO LI
-sock.ev.on("messages.update", (updates) => {
-  console.log("[READ DEBUG] messages.update:", JSON.stringify(updates));
-});
-
-sock.ev.on("message-receipt.update", (updates) => {
-  console.log("[READ DEBUG] message-receipt.update:", JSON.stringify(updates));
-});
-
-sock.ev.on("messages.update", (updates) => {
-  for (const { key, update } of updates) {
-    console.log("[AUTOREACT READ TEST]", {
-      id: key?.id,
-      remoteJid: key?.remoteJid,
-      fromMe: key?.fromMe,
-      status: update?.status
-    });
-  }
-});
+  sock.ev.on("messages.upsert", async (event) => {
+    if (!event || !Array.isArray(event.messages)) return;
 
     for (const message of event.messages) {
       try {
-        if (!message?.message) {
-          continue;
-        }
+        if (!message?.message) continue;
 
-        const remoteJid =
-          message.key?.remoteJid || "";
+        const remoteJid = message.key?.remoteJid || "";
 
-        // Pa trete status kòm mesaj nòmal.
-        if (remoteJid === "status@broadcast") {
-          continue;
-        }
+        if (remoteJid === "status@broadcast") continue;
 
-        // Detekte mesaj efasman (REVOKE).
         if (message.message.protocolMessage) {
           await antiDelete.handleDeleteEvent(
             sock,
@@ -1623,21 +1589,20 @@ sock.ev.on("messages.update", (updates) => {
           continue;
         }
 
-        // Konsève mesaj ki ka efase pita.
         await antiDelete.handleIncomingMessage(
           sessionId,
           message
         );
 
-        // Kenbe cache mesaj ki deja egziste a.
+        // Sove mesaj la pou READ receipt la jwenn li.
         cacheMessage(message);
 
-        // Kontinye tretman nòmal kòmand yo.
         await handleMessage(
           sock,
           message,
           sessionId
         );
+
       } catch (error) {
         logger.error(
           {
@@ -1650,51 +1615,140 @@ sock.ev.on("messages.update", (updates) => {
         );
       }
     }
-  }
-);
+  });
 
-// AUTO REACT WHEN INCOMING MESSAGE IS READ
-sock.ev.on("messages.update", async (updates) => {
-  for (const { key, update } of updates) {
+
+  /* |--------------------------------------------------------------------------
+   | AUTO REACT — ONLY WHEN OWNER READS MESSAGE
+   |--------------------------------------------------------------------------
+   */
+
+  function normalizeJidForCompare(jid) {
+    const value = String(jid || "").trim();
+
+    if (!value.includes("@")) return "";
+
+    const [user, server] = value.split("@");
+
+    return `${user.split(":")[0]}@${server}`.toLowerCase();
+  }
+
+  function isOwnReceiptUser(userJid) {
+    const ownJids = [
+      sock.user?.id,
+      sock.user?.lid
+    ]
+      .map(normalizeJidForCompare)
+      .filter(Boolean);
+
+    const receiptJid = normalizeJidForCompare(userJid);
+
+    return Boolean(
+      receiptJid && ownJids.includes(receiptJid)
+    );
+  }
+
+  async function reactToReadMessage(key, source) {
     try {
       if (
-        !key ||
+        !key?.remoteJid ||
+        !key?.id ||
         key.fromMe !== false ||
-        update?.status !== 4
+        key.remoteJid === "status@broadcast" ||
+        key.remoteJid.endsWith("@newsletter")
       ) {
-        continue;
+        return;
       }
 
-      const cacheKey = `${key.remoteJid}:${key.id}`;
       const cachedMessage = await getCachedMessage(key);
 
       if (!cachedMessage) {
-        console.log(
-          "[AUTOREACT] Message not found in cache:",
-          key.id
+        logger.warn(
+          `[${sessionId}] [AUTOREACT] READ receipt resevwa, men mesaj la pa nan cache: ${key.id}`
         );
-        continue;
+
+        return;
       }
 
       const result = await handleAutoReact({
         sock,
+
         message: {
           key,
           message: cachedMessage
         },
+
         sessionId
       });
 
-      console.log("[AUTOREACT RESULT]", result);
+      logger.info(
+        {
+          source,
+          messageId: key.id,
+          remoteJid: key.remoteJid,
+          result
+        },
+        `[${sessionId}] [AUTOREACT] READ receipt processed.`
+      );
 
     } catch (error) {
-      console.error(
-        "[AUTOREACT] Read handler error:",
-        error?.stack || error?.message || error
+      logger.error(
+        {
+          source,
+          error:
+            error?.stack ||
+            error?.message ||
+            String(error)
+        },
+        `[${sessionId}] [AUTOREACT] Read handler error.`
       );
     }
   }
-});
+
+
+  // PRIVATE CHAT: status READ = 3.
+  sock.ev.on("messages.update", async (updates) => {
+    if (!Array.isArray(updates)) return;
+
+    for (const item of updates) {
+      const key = item?.key;
+      const status = Number(item?.update?.status);
+
+      if (
+        key?.fromMe === false &&
+        status === 3
+      ) {
+        await reactToReadMessage(
+          key,
+          "messages.update:READ"
+        );
+      }
+    }
+  });
+
+
+  // GROUP CHAT: verifye se pwòp kont bot la ki li mesaj la.
+  sock.ev.on("message-receipt.update", async (updates) => {
+    if (!Array.isArray(updates)) return;
+
+    for (const item of updates) {
+      const key = item?.key;
+      const receipt = item?.receipt || {};
+
+      if (
+        key?.fromMe === false &&
+        key?.remoteJid?.endsWith("@g.us") &&
+        Number(receipt.readTimestamp || 0) > 0 &&
+        isOwnReceiptUser(receipt.userJid)
+      ) {
+        await reactToReadMessage(
+          key,
+          "message-receipt.update:OWN_READ"
+        );
+      }
+    }
+  });
+
 
 // Retounen socket la epi fèmen connectSession().
   return sock;
