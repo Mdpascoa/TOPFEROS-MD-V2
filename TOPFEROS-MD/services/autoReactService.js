@@ -2,7 +2,7 @@
 "use strict";
 
 // 🦁 TOPFEROS MD V2.0.0
-// AUTO REACT SERVICE — AI FIRST
+// AUTO REACT SERVICE — AI FIRST + CUSTOM EMOJI FALLBACK
 
 const settingPanel = require("../src/settingPanel");
 const { askAI } = require("./ai");
@@ -140,8 +140,11 @@ function extractAIEmoji(response) {
 |--------------------------------------------------------------------------
 | CHOOSE REACTION EMOJI
 |--------------------------------------------------------------------------
+| 1. AI chwazi emoji ki adapte ak mesaj la.
+| 2. Si AI pa disponib, itilize emoji user mete nan panel la.
+| 3. Si pa gen emoji user ni AI, pa reyaji.
+|--------------------------------------------------------------------------
 */
-
 
 async function chooseReactionEmoji(text, configuredEmojis = []) {
   const messageText = String(text || "").trim();
@@ -150,9 +153,16 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
 
   const allowedEmojis = cleanEmojiList(configuredEmojis);
 
-  // Chwazi yon emoji user te mete nan panèl la.
+  /*
+  |--------------------------------------------------------------------------
+  | CUSTOM EMOJI FALLBACK
+  |--------------------------------------------------------------------------
+  */
+
   function customEmojiFallback() {
-    if (allowedEmojis.length === 0) return null;
+    if (allowedEmojis.length === 0) {
+      return null;
+    }
 
     const index = Math.floor(
       Math.random() * allowedEmojis.length
@@ -161,7 +171,7 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
     const emoji = allowedEmojis[index];
 
     console.log(
-      "[AUTO REACT] Using user's custom emoji:",
+      "[AUTO REACT] Using user's custom emoji fallback:",
       emoji
     );
 
@@ -170,7 +180,7 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
 
   /*
   |--------------------------------------------------------------------------
-  | USER CUSTOM EMOJIS — AI FIRST, CUSTOM FALLBACK
+  | MODE 1: USER CUSTOM EMOJIS
   |--------------------------------------------------------------------------
   */
 
@@ -178,18 +188,20 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
     try {
       const prompt = [
         "Choose the best WhatsApp reaction for this message.",
-        "Analyze the meaning, emotion and context.",
+        "Understand the meaning, emotion and context.",
         "Choose exactly ONE emoji from the allowed list.",
+        "Never invent an emoji outside the list.",
         `Allowed emojis: ${allowedEmojis.join(" ")}`,
         `Message: ${messageText}`,
-        "Return only the emoji."
+        "Return only one emoji without explanation."
       ].join("\n");
 
       const response = await withTimeout(
         askAI(prompt, {
           systemPrompt:
-            "You are a WhatsApp emoji selector. " +
-            "Choose the most appropriate emoji from the allowed list only.",
+            "You are a WhatsApp reaction selector. " +
+            "Choose the most appropriate emoji from the allowed list only. " +
+            "Return only one emoji.",
 
           temperature: 0.1,
           maxTokens: 32
@@ -215,7 +227,7 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
 
     } catch (error) {
       console.warn(
-        "[AUTO REACT] AI unavailable. Using custom emoji:",
+        "[AUTO REACT] AI unavailable. Using user's custom emojis:",
         error?.message || error
       );
 
@@ -225,7 +237,7 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
 
   /*
   |--------------------------------------------------------------------------
-  | NO CUSTOM EMOJIS — GEMINI ONLY
+  | MODE 2: NO CUSTOM EMOJIS — GEMINI DECIDES
   |--------------------------------------------------------------------------
   */
 
@@ -245,103 +257,11 @@ async function chooseReactionEmoji(text, configuredEmojis = []) {
         result.source === "gemini-image"
       )
     ) {
-      return result.emoji;
-    }
-
-    console.warn(
-      "[AUTO REACT] Gemini did not select an emoji."
-    );
-
-    return null;
-
-  } catch (error) {
-    console.error(
-      "[AUTO REACT] Gemini unavailable:",
-      error?.message || error
-    );
-
-    return null;
-  }
-}
-
-  /*
-  |--------------------------------------------------------------------------
-  | MODE 1: USER CUSTOM EMOJIS
-  |--------------------------------------------------------------------------
-  */
-
-  if (allowedEmojis.length > 0) {
-    const prompt = [
-      "You are choosing a WhatsApp reaction for a message.",
-      "Understand the message's meaning, tone, and context.",
-      "Choose the ONE emoji that best matches the message.",
-      "You MUST choose exactly one emoji from the allowed list.",
-      "Do not invent or return any emoji outside the list.",
-      `Allowed emojis: ${allowedEmojis.join(" ")}`,
-      `Message: ${messageText}`,
-      "Return only the selected emoji, with no explanation."
-    ].join("\n");
-
-    try {
-      const response = await withTimeout(
-        askAI(prompt, {
-          systemPrompt:
-            "You are a precise WhatsApp reaction selector. " +
-            "Choose the most semantically appropriate emoji. " +
-            "Strictly obey the allowed emoji list. Return only one emoji.",
-
-          temperature: 0.1,
-          maxTokens: 32
-        })
+      console.log(
+        "[AUTO REACT] Gemini selected emoji:",
+        result.emoji
       );
 
-      const emoji = extractAIEmoji(response);
-
-      if (emoji && allowedEmojis.includes(emoji)) {
-        return emoji;
-      }
-
-      console.warn(
-        "[AUTO REACT] AI returned no valid emoji from the user's list."
-      );
-
-      return null;
-
-    } catch (error) {
-      console.error(
-        "[AUTO REACT] Custom emoji AI selection failed:",
-        error?.message || error
-      );
-
-      return null;
-    }
-  }
-
-  /*
-  |--------------------------------------------------------------------------
-  | MODE 2: NO CUSTOM EMOJI — GEMINI DECIDES
-  |--------------------------------------------------------------------------
-  */
-
-  try {
-    const result = await withTimeout(
-      aiReactionService.chooseEmojiWithSource({
-        text: messageText,
-        caption: messageText,
-        mediaType: "text"
-      })
-    );
-
-    // Accept only a real AI decision.
-    // Do not accept random/local fallback emojis.
-
-    if (
-      result?.emoji &&
-      (
-        result.source === "gemini" ||
-        result.source === "gemini-image"
-      )
-    ) {
       return result.emoji;
     }
 
@@ -411,6 +331,15 @@ async function handleAutoReact({
       settingPanel.getSessionSettings(sessionId);
 
     automation = settings?.automation || {};
+
+    console.log("[AUTO REACT] Session settings:", {
+      sessionId,
+      autoReact: automation.autoReact,
+      autoReactMode: automation.autoReactMode,
+      customEmojiCount: cleanEmojiList(
+        automation.autoReactEmojis
+      ).length
+    });
 
   } catch (error) {
     console.error(
@@ -513,7 +442,7 @@ async function handleAutoReact({
 
   /*
   |--------------------------------------------------------------------------
-  | AI SELECTS THE EMOJI
+  | AI FIRST + CUSTOM FALLBACK
   |--------------------------------------------------------------------------
   */
 
@@ -528,7 +457,7 @@ async function handleAutoReact({
     return {
       success: false,
       skipped: true,
-      reason: "AI could not select a valid reaction emoji."
+      reason: "No valid AI or custom emoji available."
     };
   }
 
@@ -546,20 +475,29 @@ async function handleAutoReact({
       }
     });
 
-    return {
+    const usedFallback =
+      configuredEmojis.length > 0 &&
+      !configuredEmojis.includes(emoji) === false;
+
+    const result = {
       success: true,
       emoji,
 
-      selection:
-        configuredEmojis.length > 0
-          ? "custom-list-ai"
-          : "gemini-ai",
+      selection: configuredEmojis.length > 0
+        ? "custom-list"
+        : "gemini-ai",
 
       mode,
 
-      chatType:
-        isGroup ? "group" : "private"
+      chatType: isGroup ? "group" : "private"
     };
+
+    console.log(
+      "[AUTO REACT] Reaction successfully sent:",
+      result
+    );
+
+    return result;
 
   } catch (error) {
     processedMessages.delete(cacheKey);
