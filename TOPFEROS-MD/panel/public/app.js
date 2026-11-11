@@ -619,12 +619,10 @@ function fillAutomationSettings(automation = {}) {
   setFieldValue("autoStatusReply", data.autoStatusReply);
   setFieldValue("autoStatusReact", data.autoStatusReact);
 
-setFieldValue(
-  "statusReplyEmojis:
-  getFieldValue("statusReplyEmojis", "")
-    .split(/[\s,;]+/)
-    .filter(Boolean)
-    .slice(0, 40),
+  setFieldValue(
+    "statusReplyEmojis",
+    data.statusReplyEmojis.join(" ")
+  );
 
   // AUTO REACT
   setFieldValue("autoReact", data.autoReact);
