@@ -1067,7 +1067,8 @@ const session = {
   |--------------------------------------------------------------------------
   */
 
-    const statusOptions = {};
+const statusOptions = {};
+
 Object.defineProperties(statusOptions, {
   autoStatusReact: {
     enumerable: true,
@@ -1099,11 +1100,13 @@ Object.defineProperties(statusOptions, {
     }
   },
 
-  autoReactEmojis: {
+  statusReplyEmojis: {
     enumerable: true,
     get() {
       const settings = settingPanel.getSessionSettings(sessionId);
-      const emojis = settings?.automation?.autoReactEmojis;
+      const emojis =
+        settings?.automation?.statusReplyEmojis ??
+        settings?.automation?.autoReactEmojis;
 
       return Array.isArray(emojis)
         ? emojis
@@ -1115,6 +1118,9 @@ Object.defineProperties(statusOptions, {
     }
   }
 });
+
+attachStatusHandler(sock, statusOptions);
+
   /* |--------------------------------------------------------------------------
    | CONNECTION UPDATE
    |--------------------------------------------------------------------------
