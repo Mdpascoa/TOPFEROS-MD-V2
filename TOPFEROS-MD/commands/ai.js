@@ -8,7 +8,9 @@
 
 const {
   askAI,
-  isAIConfigured
+  isAIConfigured,
+  getAIProvider,
+  getAIProviderLabel
 } = require("../services/ai");
 
 function getForwardNotice(text) {
@@ -66,9 +68,11 @@ async function aiCommand(ctx) {
     await ctx.send([
       "🤖 TOPFEROS MD AI",
       "",
-      "❌ Gemini AI is not configured.",
+      `❌ ${getAIProviderLabel()} is not configured.`,
       "",
-      "Please check GEMINI_API_KEY and GEMINI_MODEL.",
+      getAIProvider() === "claude"
+        ? "Please check ANTHROPIC_API_KEY and CLAUDE_MODEL."
+        : "Please check GEMINI_API_KEY and GEMINI_MODEL.",
       "",
       "🦁 TECH BY TOPFEROS MD 🐑"
     ].join("\n"));
@@ -88,7 +92,7 @@ async function aiCommand(ctx) {
         "Support Haitian Creole, French, English, Spanish, Portuguese and Chinese.",
         "If the user asks a question, answer it directly without an unnecessary greeting or introduction.",
         "If the user greets you, respond with an appropriate greeting.",
-        "Use Google Search when current information is needed and the search tool is available.",
+        "Use web search when current information is needed and a search tool is available.",
         "Never invent facts or claim you searched if you did not.",
         "If information is uncertain, say so clearly.",
         "Keep answers suitable for a general audience.",
@@ -99,7 +103,7 @@ async function aiCommand(ctx) {
     });
 
     if (!answer) {
-      throw new Error("Gemini returned an empty response.");
+      throw new Error("The AI returned an empty response.");
     }
 
     const notice = getForwardNotice(text + " " + answer);

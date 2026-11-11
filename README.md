@@ -122,6 +122,10 @@ that can be enabled or disabled through the Settings Panel.
 
 TOPFEROS MD V2.0.0 includes an AI Assistant designed for various tasks.
 
+The AI runs on Gemini or Claude (AI_PROVIDER=gemini|claude). Claude can also use
+MCP tools, and Claude Code can answer WhatsApp messages through the bot's
+session. See TOPFEROS-MD/CLAUDE-BRIDGE.md.
+
 🧠 AI COMMANDS
 
 .ai <question>

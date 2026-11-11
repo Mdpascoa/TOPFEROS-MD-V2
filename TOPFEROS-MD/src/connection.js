@@ -32,6 +32,8 @@ const config = require("./config");
 
 const sessionManager = require("./sessionManager");
 
+const claudeBridge = require("../services/claudeBridge");
+
 const {
   handleMessage
 } = require("./messageHandler");
@@ -1556,6 +1558,16 @@ sock.ev.on("call", async (calls) => {
 
         // Sove mesaj la pou READ receipt la jwenn li.
         cacheMessage(message);
+
+        // Voye mesaj ki otorize yo bay Claude Code (si bridge la aktive).
+        try {
+          claudeBridge.recordInbound(sock, sessionId, message);
+        } catch (bridgeError) {
+          logger.warn(
+            { error: bridgeError?.message || String(bridgeError) },
+            `[${sessionId}] Claude bridge error.`
+          );
+        }
 
         await handleMessage(
           sock,

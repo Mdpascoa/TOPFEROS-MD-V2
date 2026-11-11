@@ -1,7 +1,17 @@
 "use strict";
 
 // 🦁 TOPFEROS MD V2.0.0
-// GEMINI AI SERVICE (KORIJE POU RENDER/COMMONJS)
+// AI SERVICE: GEMINI OSWA CLAUDE (KORIJE POU RENDER/COMMONJS)
+//
+// AI_PROVIDER=gemini | claude chwazi founisè a. Si li pa defini, nou itilize
+// Gemini lè GEMINI_API_KEY la, sinon Claude lè ANTHROPIC_API_KEY la.
+
+const {
+  askClaude,
+  askClaudeWithImage,
+  isClaudeConfigured,
+  getClaudeModel
+} = require("./claudeAI");
 
 let GoogleGenAIInstance = null;
 
@@ -30,8 +40,36 @@ function getModel() {
   ).trim();
 }
 
-function isAIConfigured() {
+function isGeminiConfigured() {
   return Boolean(getApiKey());
+}
+
+function getAIProvider() {
+  const requested = String(process.env.AI_PROVIDER || "")
+    .trim()
+    .toLowerCase();
+
+  if (["claude", "anthropic"].includes(requested)) return "claude";
+  if (["gemini", "google"].includes(requested)) return "gemini";
+
+  if (isGeminiConfigured()) return "gemini";
+  if (isClaudeConfigured()) return "claude";
+
+  return "gemini";
+}
+
+function getAIProviderLabel() {
+  return getAIProvider() === "claude" ? "Claude AI" : "Gemini AI";
+}
+
+function getAIModel() {
+  return getAIProvider() === "claude" ? getClaudeModel() : getModel();
+}
+
+function isAIConfigured() {
+  return getAIProvider() === "claude"
+    ? isClaudeConfigured()
+    : isGeminiConfigured();
 }
 
 async function getAIClient() {
@@ -75,7 +113,7 @@ function validNumber(value, fallback, min, max) {
     : fallback;
 }
 
-async function askAIWithImage(prompt, imageBuffer, mimeType = "image/jpeg", options = {}) {
+async function geminiAskWithImage(prompt, imageBuffer, mimeType = "image/jpeg", options = {}) {
   const text = String(prompt || "").trim();
 
   if (!text) {
@@ -128,7 +166,7 @@ async function askAIWithImage(prompt, imageBuffer, mimeType = "image/jpeg", opti
   return answer;
 }
 
-async function askAI(prompt, options = {}) {
+async function geminiAsk(prompt, options = {}) {
   const text = String(prompt || "").trim();
 
   if (!text) {
@@ -200,6 +238,18 @@ async function askAI(prompt, options = {}) {
   }
 }
 
+async function askAI(prompt, options = {}) {
+  return getAIProvider() === "claude"
+    ? askClaude(prompt, options)
+    : geminiAsk(prompt, options);
+}
+
+async function askAIWithImage(prompt, imageBuffer, mimeType = "image/jpeg", options = {}) {
+  return getAIProvider() === "claude"
+    ? askClaudeWithImage(prompt, imageBuffer, mimeType, options)
+    : geminiAskWithImage(prompt, imageBuffer, mimeType, options);
+}
+
 async function aiChat(prompt, history = [], options = {}) {
   return askAI(prompt, {
     ...options,
@@ -211,5 +261,8 @@ module.exports = {
   askAI,
   askAIWithImage,
   aiChat,
-  isAIConfigured
+  isAIConfigured,
+  getAIProvider,
+  getAIProviderLabel,
+  getAIModel
 };
