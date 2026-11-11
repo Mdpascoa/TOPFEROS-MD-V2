@@ -8,7 +8,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node --watch index.js",
-    "check": "node --check index.js && node --check src/config.js && node --check src/connection.js && node --check src/messageHandler.js && node --check src/sessionManager.js && node --check src/statusHandler.js && node --check services/aiReactionService.js && node --check commands/index.js && node --check panel/server.js",
+    "mcp:whatsapp": "node mcp/whatsapp-channel.mjs",
+    "check": "node --check index.js && node --check src/config.js && node --check src/connection.js && node --check src/messageHandler.js && node --check src/sessionManager.js && node --check src/statusHandler.js && node --check services/aiReactionService.js && node --check commands/index.js && node --check panel/server.js && node --check services/ai.js && node --check services/claudeAI.js && node --check services/claudeBridge.js && node --check mcp/whatsapp-channel.mjs",
     "check:media": "python3 -c \"import sys; sys.path.insert(0, './python-packages'); import yt_dlp, imageio_ffmpeg; print('yt-dlp disponib:', yt_dlp.version.version); print('FFmpeg disponib:', imageio_ffmpeg.get_ffmpeg_exe())\""
   },
   "engines": {
@@ -24,12 +25,14 @@
   "author": "TOPFEROS MD",
   "license": "MIT",
   "dependencies": {
-  "@whiskeysockets/baileys": "7.0.0-rc14",
+    "@anthropic-ai/sdk": "^1.8.0",
+    "@whiskeysockets/baileys": "7.0.0-rc14",
     "@google/genai": "^1.21.0",
     "axios": "^1.7.9",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-session": "^1.18.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "pino": "^9.6.0",
     "qrcode": "^1.5.4",
     "pg": "^8.16.3"
